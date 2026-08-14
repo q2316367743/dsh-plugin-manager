@@ -132,9 +132,7 @@ func pump(r io.Reader, jobId, stream string, emit func(string, string, string)) 
 func (s *ProcService) RunCli(jobId string, cmd string, args []string, detached bool) int {
 	c := exec.Command(cmd, args...)
 	c.Env = userEnv(nil)
-	if detached {
-		c.SysProcAttr = detachedSysProcAttr()
-	}
+	c.SysProcAttr = spawnProcAttr(detached)
 	stdout, err := c.StdoutPipe()
 	if err != nil {
 		s.emit(jobId, "stderr", "spawn error: "+err.Error()+"\n")

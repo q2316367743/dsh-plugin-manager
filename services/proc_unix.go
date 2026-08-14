@@ -4,8 +4,12 @@ package services
 
 import "syscall"
 
-// detachedSysProcAttr 使子进程脱离当前进程组（父进程退出后继续运行）。
-func detachedSysProcAttr() *syscall.SysProcAttr {
+// spawnProcAttr 返回子进程启动属性：detached 时脱离当前进程组
+// （父进程退出后继续运行），非 detached 无特殊属性。
+func spawnProcAttr(detached bool) *syscall.SysProcAttr {
+	if !detached {
+		return nil
+	}
 	return &syscall.SysProcAttr{Setpgid: true}
 }
 

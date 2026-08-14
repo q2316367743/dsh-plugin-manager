@@ -4,9 +4,14 @@ package services
 
 import "syscall"
 
-// Windows 无进程组概念，detached 子进程天然独立运行，无需额外属性。
-func detachedSysProcAttr() *syscall.SysProcAttr {
-	return nil
+const createNoWindow = 0x08000000 // CREATE_NO_WINDOW：控制台程序不创建窗口
+
+// spawnProcAttr 返回子进程启动属性。Windows GUI 应用无控制台，spawn 控制台
+// 程序（node / bun / cmd.exe 等）时不带 CREATE_NO_WINDOW 会闪现黑窗口
+// （web 服务被关掉黑窗即退出），所有 spawn 必须走此属性。
+// Windows 无进程组概念，detached 子进程天然独立运行，无需额外标志。
+func spawnProcAttr(_ bool) *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{CreationFlags: createNoWindow}
 }
 
 // 标准库 syscall 未导出的两个常量（同 wails updater 的处理：本地定义避免依赖 x/sys/windows）。

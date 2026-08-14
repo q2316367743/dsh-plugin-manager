@@ -277,6 +277,7 @@ func runVersion(bin string, prefix []string) (string, error) {
 	args := append(append([]string{}, prefix...), "--version")
 	c := exec.CommandContext(ctx, bin, args...)
 	c.Env = userEnv(nil)
+	c.SysProcAttr = spawnProcAttr(false)
 	out, err := c.CombinedOutput()
 	if err != nil {
 		return "", err
