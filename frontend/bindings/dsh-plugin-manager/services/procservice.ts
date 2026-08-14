@@ -11,7 +11,7 @@
 import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 /**
- * * 通过 lsof（darwin/linux）找到监听某端口的 PID；win32 不支持返回 nil。
+ * * 通过 lsof（darwin/linux）或 PowerShell（win32）找到监听某端口的 PID。
  */
 export function FindPidByPort(port: number): $CancellablePromise<number | null> {
     return $Call.ByID(3435341158, port);

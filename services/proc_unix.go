@@ -28,3 +28,8 @@ func procAlive(pid int) bool {
 	err := syscall.Kill(pid, 0)
 	return err == nil || err == syscall.EPERM
 }
+
+// findPidByPortWindows 仅 Windows 使用（见 proc_windows.go），此占位保证非 Windows 构建可编译。
+func findPidByPortWindows(_ int) *int {
+	return nil
+}

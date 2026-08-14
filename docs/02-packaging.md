@@ -199,3 +199,7 @@ wails3 tool sign --input bin/dsh-plugin-manager-amd64.app \
    `InstallDir` 用 `${INFO_PROJECTNAME}`（`$PROGRAMFILES64\dsh-plugin-manager` 或 `%LOCALAPPDATA%\Programs\dsh-plugin-manager`），
    避免显示名变更连带改安装目录。改 `build/config.yml` 的 `info` 后重跑 `wails3 task common:update:build-assets` 时，
    `project.nsi` 中的显式 define 不会被覆盖（该文件不做模板替换）。
+8. **dmg 打包残留挂载**：`wails3 tool package --format dmg` 会 attach 镜像（`/Volumes/dsh-plugin-manager`、`/tmp/ima.dmg`），
+   可能残留挂载导致**同一会话内第二次打 dmg 失败**（脚本在 `[6/7]` 中断、`update.json` 未生成即此坑）。
+   `scripts/package.sh` 已在打 dmg 前强制 `hdiutil detach` 相关卷并删除 `/tmp/ima.dmg`；手动执行 dmg 命令时若报错，
+   先 `hdiutil info` 检查残留并清理。

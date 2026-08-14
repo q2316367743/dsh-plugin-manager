@@ -50,7 +50,7 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 | 服务             | 方法                                                                                                                                                                                  | 说明                                                                                                                                                                                                                                                       |
 |------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `DshService`     | `GetDshHome / ListProfiles / ReadProfileManifest / WriteProfileManifest / ReadProfilePatch / WriteProfilePatch / ReadBundlePatch / ReadInstalledPackage / ResolveDshBin / ResolveDsh` | dsh 生态文件访问；`ResolveDsh` 探测运行方式（直接执行 → bun 兜底）返回 `{state, command, prefix, version}`                                                                                                                                                 |
-| `ProcService`    | `RunCli(jobId, cmd, args, detached) / Kill / IsAlive / FindPidByPort`                                                                                                                 | 流式子进程；输出经事件 `proc:output`、退出经 `proc:exit` 推送（按 jobId 分发）；`Kill` 为 SIGTERM → 3s → SIGKILL（Windows 为 TerminateProcess，平台差异在 `proc_unix.go` / `proc_windows.go` 按构建标签拆分）；`FindPidByPort` 走 lsof（win32 返回 null）  |
+| `ProcService`    | `RunCli(jobId, cmd, args, detached) / Kill / IsAlive / FindPidByPort`                                                                                                                 | 流式子进程；输出经事件 `proc:output`、退出经 `proc:exit` 推送（按 jobId 分发）；`Kill` 为 SIGTERM → 3s → SIGKILL（Windows 为**按进程树** TerminateProcess：经 cmd.exe 跑 .cmd 脚手架拉起 node/bun 时，只杀单进程会让服务残留占端口，`proc_windows.go` 用 CreateToolhelp32Snapshot 遍历后代整体终止；平台差异在 `proc_unix.go` / `proc_windows.go` 按构建标签拆分）；`FindPidByPort` 走 lsof（win32 走 PowerShell `Get-NetTCPConnection`）  |
 | `KVService`      | `GetItem / SetItem / RemoveItem`                                                                                                                                                      | 替代原 dbStorage：内存 map + 持久化到 `os.UserConfigDir()/dsh-plugin-manager/kv.json`（原子写）                                                                                                                                                            |
 | `BrowserService` | `OpenInBuiltin(url, width, height)`                                                                                                                                                   | 内置浏览器：运行中 `application.Get().Window.NewWithOptions(WebviewWindowOptions{URL: url})` 动态建窗加载外部 URL（Wails v3 JS runtime 无建窗 API，只能在 Go 侧做）；窗口单例复用，已存在则按需 `SetURL` + `Focus`，`events.Common.WindowClosing` 时清引用 |
 
@@ -144,8 +144,8 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
    且服务在运行（running-own）时同样询问重启（不受 `confirmRestart` 设置约束），foreign 直接提示手动重启。
 7. **dsh plugin add / update 的 reconcile**：`add` 只会向 bundles 追加新包；`update` 直接执行 `dsh plugin update <name>`
    （无批量检查更新能力，前端不做 npm registry 版本探测）。
-8. **端口探测不做运行判定**（代理劫持会误报），以 PID 存活 + lsof 监听者为准；`FindPidByPort` 在 win32 返回 null（外部启动的服务在
-   win32 上显示 stopped，可接受）。
+8. **端口探测不做运行判定**（代理劫持会误报），以 PID 存活 + lsof 监听者为准；`FindPidByPort` 在 win32 走 PowerShell `Get-NetTCPConnection`
+   查询（CIM 属性名不受系统语言本地化影响，规避 netstat 状态词本地化问题），外部启动的服务在 win32 同样能识别为 running-foreign。
 9. **git 源 bundle**（如 `github:omdsh-dev/dsh-at-file`）：安装时若 pnpm 阻止构建脚本，dsh 会提示在 `pnpm-workspace.yaml` 的
    allowBuilds 放行，UI 透传其 stderr。
 10. **导航结构**：无侧边栏布局。`main.ts` bootstrap 先 `useColorMode()` 应用持久化主题（亮/暗/跟随系统，挂载前设置
@@ -180,7 +180,7 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 15. **安装 / 更新抽屉关闭约束**：`InstallPlugin.tsx` / `UpdatePlugin.tsx` 均配置
     `closeBtn: false / closeOnEscKeydown: false / closeOnOverlayClick: false`
     ，只能通过内容组件「取消」按钮关闭（运行中取消按钮禁用，只能点「取消安装 / 取消更新」= `kill(pid)` 终止进程，`Kill` 为
-    SIGTERM → 3s → SIGKILL）；`InstallPluginContent.vue` 按 `mode` prop 区分 install / update：命令经 `store.dshCommand()`
+    SIGTERM → 3s → SIGKILL，Windows 上为按进程树 TerminateProcess，cmd shim 包装的 CLI 也能被完整终止）；`InstallPluginContent.vue` 按 `mode` prop 区分 install / update：命令经 `store.dshCommand()`
     取 `{command, prefix}`，拼 `plugin --profile <p> add <spec>`（spec 含 `github:user/repo#branch` 原样透传）或
     `plugin --profile <p> update <name>`；`onBeforeUnmount` 兜底杀掉未结束进程（drawer `destroyOnClose` 销毁组件时）。
 16. **内置浏览器窗口**：设置「浏览器打开方式」选内置浏览器后，首页服务卡片「打开」走 `store.openServer()` →

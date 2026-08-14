@@ -197,10 +197,10 @@ func (s *ProcService) IsAlive(pid int) bool {
 	return procAlive(pid)
 }
 
-/** 通过 lsof（darwin/linux）找到监听某端口的 PID；win32 不支持返回 nil。 */
+/** 通过 lsof（darwin/linux）或 PowerShell（win32）找到监听某端口的 PID。 */
 func (s *ProcService) FindPidByPort(port int) *int {
 	if runtime.GOOS == "windows" {
-		return nil
+		return findPidByPortWindows(port)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()

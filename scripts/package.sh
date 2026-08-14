@@ -31,6 +31,16 @@ cd "$REPO"
 
 export PATH="$HOME/go/bin:$PATH"
 
+# 当前步骤标记 + ERR trap：任何一步失败都能定位到具体阶段（set -e 配套）
+CURRENT_STEP="初始化"
+fail_trap() {
+  echo
+  echo "✗ 脚本在「${CURRENT_STEP}」步骤失败，详见上方错误输出" >&2
+  echo "  bin/ 中已生成的产物会保留；修复问题后重跑脚本即可（会重建全部产物）" >&2
+  exit 1
+}
+trap fail_trap ERR
+
 # ── 0. 准备：解析版本 / 产品名，检查工具链 ──────────────────────────
 VERSION="$(sed -nE 's/^[[:space:]]+version:[[:space:]]*"([^"]+)".*/\1/p' build/config.yml | head -1)"
 PRODUCT_NAME="$(sed -nE 's/^[[:space:]]+productName:[[:space:]]*"([^"]+)".*/\1/p' build/config.yml | head -1)"
@@ -63,14 +73,17 @@ trap 'rm -rf "$STAGE"' EXIT
 
 # ── 1. 同步构建资产（Info.plist / windows info.json 的名称、bundle id、版本）──
 echo "==> [1/7] wails3 task common:update:build-assets"
+CURRENT_STEP="[1/7] 同步构建资产"
 wails3 task common:update:build-assets
 
 # ── 2. macOS arm64：构建 + 组装 .app（默认 adhoc 签名）─────────────
 echo "==> [2/7] macOS arm64：wails3 task darwin:package"
+CURRENT_STEP="[2/7] macOS arm64 构建 + .app"
 wails3 task darwin:package
 
 # ── 3. macOS amd64：构建 + 手动组装 amd64 .app ────────────────────
 echo "==> [3/7] macOS amd64：darwin:build ARCH=amd64 + 组装 amd64 .app"
+CURRENT_STEP="[3/7] macOS amd64 构建与组装"
 wails3 task darwin:build ARCH=amd64
 rm -rf bin/dsh-plugin-manager-amd64.app
 mkdir -p bin/dsh-plugin-manager-amd64.app/Contents/MacOS
@@ -82,7 +95,9 @@ codesign --force --deep --sign - bin/dsh-plugin-manager-amd64.app
 
 # ── 4. Windows x64：构建 + NSIS 安装包 ────────────────────────────
 echo "==> [4/7] Windows x64：windows:build + windows:package（NSIS）"
+CURRENT_STEP="[4/7] Windows x64 构建"
 wails3 task windows:build ARCH=amd64
+CURRENT_STEP="[4/7] Windows NSIS 安装包"
 wails3 task windows:package ARCH=amd64
 
 # ── 4.5 可选：Developer ID 签名 + 公证（文档第四节）─────────────
@@ -96,6 +111,7 @@ if [ "${SIGN:-0}" = "1" ]; then
   else
     echo "==> [4.5] Developer ID 签名两个 .app（--hardened-runtime）"
   fi
+  CURRENT_STEP="[4.5] Developer ID 签名"
   SIGN_ARGS=(--hardened-runtime)
   if [ -n "${DEV_ID:-}" ]; then
     SIGN_ARGS+=(--identity "$DEV_ID")
@@ -109,6 +125,7 @@ fi
 
 # ── 5. 自动更新 zip（硬性约束：恰好一个顶层条目，无 __MACOSX/AppleDouble）──
 echo "==> [5/7] 制作自动更新 zip"
+CURRENT_STEP="[5/7] 自动更新 zip"
 mkdir -p "$STAGE"/{darwin-arm64,darwin-amd64,win}
 cp -R bin/dsh-plugin-manager.app        "$STAGE/darwin-arm64/dsh-plugin-manager.app"
 cp -R bin/dsh-plugin-manager-amd64.app "$STAGE/darwin-amd64/dsh-plugin-manager.app"
@@ -141,20 +158,38 @@ check_zip bin/dsh-plugin-manager-windows-amd64.zip dsh-plugin-manager.exe
 
 # ── 6. dmg 用户安装包（双架构：临时替换标准 .app 名）───────────────
 echo "==> [6/7] 制作 dmg"
+CURRENT_STEP="[6/7] dmg 用户安装包"
 DMG_ARGS=(--format dmg --name dsh-plugin-manager --out bin
   --background build/darwin/dmg-background.png
   --volume-icon build/darwin/icons.icns --file-icon build/darwin/dmg-file-icon.icns
   --window-width 540 --window-height 380)
 
+# wails3 tool package 打 dmg 时会 attach 镜像并可能残留挂载（/Volumes/dsh-plugin-manager、
+# /tmp/ima.dmg），不清理会导致同一脚本第二次 dmg 失败。先强制清理，找不到则忽略。
+for mnt in /Volumes/dsh-plugin-manager* /Volumes/ima*; do
+  hdiutil detach -quiet "$mnt" 2>/dev/null || true
+done
+rm -f /tmp/ima.dmg
+
+# 打一次 dmg 并改名；wails3 成功时可能无任何输出，靠产物是否存在判断
+make_dmg() {
+  local out="$1"
+  wails3 tool package "${DMG_ARGS[@]}"
+  [ -f bin/dsh-plugin-manager.dmg ] || {
+    echo "✗ wails3 tool package 未产出 dmg（执行 hdiutil info 检查残留挂载后重跑）" >&2
+    return 1
+  }
+  mv bin/dsh-plugin-manager.dmg "$out"
+  echo "  ✓ $out"
+}
+
 # arm64：bin/dsh-plugin-manager.app 即 arm64
-wails3 tool package "${DMG_ARGS[@]}"
-mv bin/dsh-plugin-manager.dmg bin/dsh-plugin-manager-darwin-arm64.dmg
+make_dmg bin/dsh-plugin-manager-darwin-arm64.dmg
 
 # amd64：临时把 amd64 .app 换到标准名，打完再换回
 mv bin/dsh-plugin-manager.app bin/dsh-plugin-manager-arm64.app.tmp
 mv bin/dsh-plugin-manager-amd64.app bin/dsh-plugin-manager.app
-wails3 tool package "${DMG_ARGS[@]}"
-mv bin/dsh-plugin-manager.dmg bin/dsh-plugin-manager-darwin-amd64.dmg
+make_dmg bin/dsh-plugin-manager-darwin-amd64.dmg
 mv bin/dsh-plugin-manager.app bin/dsh-plugin-manager-amd64.app
 mv bin/dsh-plugin-manager-arm64.app.tmp bin/dsh-plugin-manager.app
 
@@ -164,6 +199,7 @@ hdiutil verify bin/dsh-plugin-manager-darwin-amd64.dmg
 
 # ── 7. 生成并验证 update.json（只引用 zip）─────────────────────────
 echo "==> [7/7] 生成并验证 update.json"
+CURRENT_STEP="[7/7] update.json"
 mkdir -p "$STAGE/release"
 cp bin/dsh-plugin-manager-{darwin-arm64,darwin-amd64,windows-amd64}.zip "$STAGE/release/"
 wails3 updater manifest -version "$VERSION" -name "$PRODUCT_NAME" \

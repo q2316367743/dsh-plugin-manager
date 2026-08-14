@@ -2,7 +2,16 @@
 
 package services
 
-import "syscall"
+import (
+	"context"
+	"fmt"
+	"os/exec"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
+	"unsafe"
+)
 
 const createNoWindow = 0x08000000 // CREATE_NO_WINDOW：控制台程序不创建窗口
 
@@ -32,14 +41,91 @@ func terminateProc(pid int) bool {
 	return err == nil
 }
 
-// requestTerminate 温和终止：Windows 无 POSIX 信号，直接 TerminateProcess。
-func requestTerminate(pid int) bool {
+// collectDescendants 用 CreateToolhelp32Snapshot 采集全进程表，BFS 收集 pid 的全部后代。
+// 标准库 syscall 已导出快照与遍历 API，无需引入 x/sys/windows。
+func collectDescendants(pid int) []int {
+	snap, err := syscall.CreateToolhelp32Snapshot(syscall.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return nil
+	}
+	defer syscall.CloseHandle(snap)
+
+	parent := make(map[int]int)
+	var entry syscall.ProcessEntry32
+	entry.Size = uint32(unsafe.Sizeof(entry))
+	if err := syscall.Process32First(snap, &entry); err != nil {
+		return nil
+	}
+	for {
+		parent[int(entry.ProcessID)] = int(entry.ParentProcessID)
+		if err := syscall.Process32Next(snap, &entry); err != nil {
+			break
+		}
+	}
+
+	desc := make([]int, 0)
+	seen := map[int]bool{pid: true}
+	queue := []int{pid}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		for child, ppid := range parent {
+			if ppid == cur && !seen[child] {
+				seen[child] = true
+				desc = append(desc, child)
+				queue = append(queue, child)
+			}
+		}
+	}
+	return desc
+}
+
+// killTree 终止 pid 及其全部后代（先子后父）。Windows 的 TerminateProcess 只作用于
+// 单个进程：web 服务常经 cmd.exe 运行 .cmd 脚手架再拉起 node/bun，只杀 cmd.exe 会
+// 让真正的服务进程残留并继续占端口，必须整体终止进程树。
+func killTree(pid int) bool {
+	for _, child := range collectDescendants(pid) {
+		terminateProc(child)
+	}
 	return terminateProc(pid)
+}
+
+// requestTerminate 温和终止：Windows 无 POSIX 信号，按进程树 TerminateProcess。
+func requestTerminate(pid int) bool {
+	return killTree(pid)
 }
 
 // forceKill 兜底强杀：与 requestTerminate 相同（Windows 只有终止一种方式）。
 func forceKill(pid int) {
-	_ = terminateProc(pid)
+	_ = killTree(pid)
+}
+
+// findPidByPortWindows 查询监听指定端口的 PID。走 PowerShell 的 CIM 查询
+// （Get-NetTCPConnection，属性名为英文，不受系统语言本地化影响），规避
+// netstat -ano 状态词在非英文系统被本地化（如中文的“监听”）导致匹配失败。
+func findPidByPortWindows(port int) *int {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	script := fmt.Sprintf(
+		"Get-NetTCPConnection -LocalPort %d -State Listen | Select-Object -ExpandProperty OwningProcess",
+		port,
+	)
+	out, err := exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", script).Output()
+	if err != nil {
+		return nil
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(line)
+		if err != nil || pid <= 0 {
+			continue
+		}
+		return &pid
+	}
+	return nil
 }
 
 // procAlive 报告 pid 进程是否存活（OpenProcess + GetExitCodeProcess，
