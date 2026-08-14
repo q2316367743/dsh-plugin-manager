@@ -36,7 +36,6 @@ export const dshApi = {
     window.preload.dsh.readBundlePatch(profile, packageName),
   readInstalledPackage: (profile: string, packageName: string): InstalledPackage | null =>
     window.preload.dsh.readInstalledPackage(profile, packageName),
-  getLogFile: (profile: string) => window.preload.dsh.getLogFile(profile),
 
   resolveDshBin: (configuredPath: string): string | null =>
     window.preload.dsh.resolveDshBin(configuredPath || undefined),
@@ -57,7 +56,6 @@ export const dshApi = {
   },
   kill: (pid: number) => window.preload.proc.kill(pid),
   isAlive: (pid: number) => window.preload.proc.isAlive(pid),
-  checkPort: (port: number) => window.preload.proc.checkPort(port),
   findPidByPort: (port: number) => window.preload.proc.findPidByPort(port),
 
   // ---- 网络（npm / github）----

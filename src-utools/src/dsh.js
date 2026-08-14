@@ -11,8 +11,7 @@ const {
   writeFileSync,
   readdirSync,
   accessSync,
-  constants,
-  mkdirSync
+  constants
 } = require('node:fs')
 const { spawnSync } = require('node:child_process')
 const { userEnv } = require('./process')
@@ -223,13 +222,6 @@ function resolveDsh(configuredPath) {
   }
 }
 
-/** dsh web 运行日志文件路径 */
-function getLogFile(profile) {
-  const dir = join(resolveDshHome(), 'plugin-manager', 'logs')
-  mkdirSync(dir, { recursive: true })
-  return join(dir, `${profile}.log`)
-}
-
 module.exports = {
   getDshHome: resolveDshHome,
   listProfiles,
@@ -239,8 +231,6 @@ module.exports = {
   writeProfilePatch,
   readBundlePatch,
   readInstalledPackage,
-  resolveBundleDir,
   resolveDshBin,
-  resolveDsh,
-  getLogFile
+  resolveDsh
 }

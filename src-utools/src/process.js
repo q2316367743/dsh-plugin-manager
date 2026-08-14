@@ -7,7 +7,6 @@
  * 之类的 shebang 找不到解释器。所有 spawn 统一注入用户登录 shell 的 PATH。
  */
 const { spawn, spawnSync } = require('node:child_process')
-const net = require('node:net')
 const { platform } = require('node:os')
 
 let cachedUserPath = null
@@ -121,23 +120,6 @@ function isAlive(pid) {
   }
 }
 
-/** TCP 探测端口是否可连接 */
-function checkPort(port, host = '127.0.0.1') {
-  return new Promise((resolve) => {
-    const socket = net.connect({ port, host })
-    socket.setTimeout(1500)
-    socket.once('connect', () => {
-      socket.destroy()
-      resolve(true)
-    })
-    socket.once('error', () => resolve(false))
-    socket.once('timeout', () => {
-      socket.destroy()
-      resolve(false)
-    })
-  })
-}
-
 /** 通过 lsof（darwin/linux）找到监听某端口的 PID；win32 暂不支持返回 null */
 function findPidByPort(port) {
   if (platform() === 'win32') return null
@@ -156,7 +138,6 @@ module.exports = {
   spawnStream,
   kill,
   isAlive,
-  checkPort,
   findPidByPort,
   resolveUserPath,
   userEnv

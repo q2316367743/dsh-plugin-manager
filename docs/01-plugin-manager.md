@@ -76,5 +76,5 @@ uTools 插件「DSH 插件管理器」的技术文档。按 profile 管理 dsh�
 7. **端口探测不做运行判定**（代理劫持会误报），以 PID 存活 + lsof 监听者为准；`findPidByPort` 在 win32 返回 null（外部启动的服务在 win32 上显示 stopped，可接受）。
 8. **git 源 bundle**（如 `github:omdsh-dev/dsh-at-file`）：检查更新跳过（无 registry 版本）；安装时若 pnpm 阻止构建脚本，dsh 会提示在 `pnpm-workspace.yaml` 的 allowBuilds 放行，UI 透传其 stderr。
 9. **导航结构**：无侧边栏布局。`main.ts` bootstrap 先 `await store.init()` 再挂载；App.vue 依据 dsh 状态统一路由——未就绪 → `/setup` 全屏引导页，就绪 → 当前 profile 首页（`/profile/:name`）；首页 header 右侧按钮进入 `/settings`（SubPageLayout 返回）；`/` 由 RedirectHome 兜底重定向。
-10. **子输入框**：首页挂载时 `setSubInput` 过滤插件列表，离开页面 `removeSubInput`；`onPluginEnter` 的输入文本作为初始过滤词。
+10. **搜索过滤**：首页 header 的 profile 切换下拉右侧提供搜索输入框（`store.filter`），按插件名称 / 描述实时过滤列表；无匹配时显示空态提示。
 11. **验证**：只做 typecheck（`pnpm check`），不需要 build（RL-07）。

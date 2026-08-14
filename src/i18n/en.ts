@@ -48,7 +48,8 @@ export const en: Record<I18nKey, string> = {
   'list.official': 'Official plugins',
   'list.thirdParty': 'Third-party plugins',
   'list.empty': 'No plugins in this profile yet. Click "Install plugin" to search and add.',
-  'list.filterHint': 'Type in the utools sub input to filter plugins',
+  'list.searchPlaceholder': 'Search plugins by name or description…',
+  'list.noMatch': 'No matching plugins',
 
   // toolbar
   'toolbar.install': 'Install plugin',

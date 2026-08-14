@@ -45,7 +45,8 @@ export const zh = {
   'list.official': '官方插件',
   'list.thirdParty': '第三方插件',
   'list.empty': '该平台暂无插件，点击「安装插件」搜索添加',
-  'list.filterHint': '在 utools 子输入框输入关键字过滤插件',
+  'list.searchPlaceholder': '搜索插件名称或描述…',
+  'list.noMatch': '没有匹配的插件',
 
   // 工具栏
   'toolbar.install': '安装插件',

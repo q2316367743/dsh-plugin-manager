@@ -32,16 +32,8 @@ onMounted(async () => {
   // store 已在 main.ts bootstrap 中 init；此处兜底（如热更新重载）
   if (!store.profiles.length) await store.init()
   ensureRoute()
-
-  window.preload.inject.onPluginEnter((action) => {
-    // utools 主输入框文本作为子输入框初始过滤词
-    if (action.type === 'text' && typeof action.payload === 'string') {
-      store.filter = action.payload
-    }
-    // 每次进入静默刷新数据并重新判定入口
-    store.init()
-    ensureRoute()
-  })
+  // 每次进入静默刷新数据并重新判定入口
+  store.init()
 })
 </script>
 <style scoped lang="less">

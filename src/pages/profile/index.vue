@@ -8,6 +8,14 @@
           class="profile-select"
           @change="onProfileChange"
         />
+        <t-input
+          v-model="store.filter"
+          :placeholder="t('list.searchPlaceholder')"
+          clearable
+          class="search-input"
+        >
+          <template #prefix-icon><search-icon /></template>
+        </t-input>
       </div>
       <div class="page-header-right">
         <t-button theme="primary" variant="text" shape="square" @click="router.push('/settings')">
@@ -75,7 +83,7 @@
         <t-empty v-if="!store.detail?.items.length" :description="t('list.empty')" class="empty" />
         <t-empty
           v-else-if="!filteredOfficial.length && !filteredThird.length"
-          :description="t('list.filterHint')"
+          :description="t('list.noMatch')"
           class="empty"
         />
       </template>
@@ -88,6 +96,7 @@ import {
   AddIcon,
   DownloadIcon,
   RefreshIcon,
+  SearchIcon,
   Setting1Icon,
   UploadIcon
 } from 'tdesign-icons-vue-next'
@@ -148,21 +157,6 @@ onMounted(async () => {
   if (typeof name === 'string' && name !== store.currentProfile) {
     await store.selectProfile(name)
   }
-  // utools 子输入框：过滤插件列表（onPluginEnter 的输入文本作为初始过滤词）
-  window.preload.inject.input.setSubInput(
-    ({ text }) => {
-      store.filter = text
-    },
-    t('list.filterHint'),
-    true
-  )
-  if (store.filter) {
-    window.preload.inject.input.setSubInputValue(store.filter)
-  }
-})
-
-onBeforeUnmount(() => {
-  window.preload.inject.input.removeSubInput()
 })
 
 // ---- 工具栏 ----
@@ -328,10 +322,15 @@ function onMove(kind: 'official' | 'third', range: { from: number; to: number })
     .page-header-left {
       display: flex;
       align-items: center;
+      gap: 12px;
       min-width: 0;
 
       .profile-select {
         width: 200px;
+      }
+
+      .search-input {
+        width: 240px;
       }
     }
   }
