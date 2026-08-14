@@ -36,6 +36,7 @@ func main() {
 			application.NewService(services.NewDshService()),
 			application.NewService(services.NewProcService()),
 			application.NewService(services.NewKVService()),
+			application.NewService(services.NewBrowserService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

@@ -17,12 +17,13 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 
 ```
 /（仓库根）
-├── main.go                  # Wails 入口：embed frontend/dist + 注册 3 个服务 + 窗口
+├── main.go                  # Wails 入口：embed frontend/dist + 注册 4 个服务 + 窗口
 ├── tray.go                  # 系统托盘：显示/隐藏 / 启动停止服务 / 退出（含关闭到托盘钩子）
 ├── services/
 │   ├── dsh.go               # DshService：DSH_HOME / profile / patch / 可执行文件探测
 │   ├── proc.go              # ProcService：流式子进程（事件推送）/ kill / isAlive / lsof
 │   ├── kv.go                # KVService：应用级键值存储（JSON 文件）
+│   ├── browser.go           # BrowserService：内置浏览器窗口（运行中动态建窗加载外部 URL）
 │   └── tray.go              # TrayServiceStatus 事件负载类型（托盘状态契约）
 ├── config.yml               # Wails 项目配置（产品名 / 版本 / dev 模式）
 ├── Taskfile.yml             # 构建任务（wails3 驱动，pnpm 管理前端）
@@ -37,24 +38,25 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 | `DshService` | `GetDshHome / ListProfiles / ReadProfileManifest / WriteProfileManifest / ReadProfilePatch / WriteProfilePatch / ReadBundlePatch / ReadInstalledPackage / ResolveDshBin / ResolveDsh` | dsh 生态文件访问；`ResolveDsh` 探测运行方式（直接执行 → bun 兜底）返回 `{state, command, prefix, version}` |
 | `ProcService` | `RunCli(jobId, cmd, args, detached) / Kill / IsAlive / FindPidByPort` | 流式子进程；输出经事件 `proc:output`、退出经 `proc:exit` 推送（按 jobId 分发）；`Kill` 为 SIGTERM → 3s → SIGKILL；`FindPidByPort` 走 lsof（win32 返回 null） |
 | `KVService` | `GetItem / SetItem / RemoveItem` | 替代原 dbStorage：内存 map + 持久化到 `os.UserConfigDir()/dsh-plugin-manager/kv.json`（原子写） |
+| `BrowserService` | `OpenInBuiltin(url, width, height)` | 内置浏览器：运行中 `application.Get().Window.NewWithOptions(WebviewWindowOptions{URL: url})` 动态建窗加载外部 URL（Wails v3 JS runtime 无建窗 API，只能在 Go 侧做）；窗口单例复用，已存在则按需 `SetURL` + `Focus`，`events.Common.WindowClosing` 时清引用 |
 
 ### 前端（`frontend/src/`）
 | 文件 | 职责 |
 |---|---|
 | `api/dsh.ts` | 底层能力封装（RL-03）：服务绑定 + 事件式 CLI；`runCliStream` 等待退出返回码、`runCliInterruptible` 返回 `{pid, exit}` 可中途 `kill(pid)`（安装取消用），内部均 `Events.On("proc:output"/"proc:exit")` 按 jobId 分发并自动清理监听 |
-| `api/native.ts` | 原生能力适配层：`Dialogs.OpenFile`、`Clipboard.SetText`、`Browser.OpenURL`、KV 转发；替代原 `window.preload.inject` |
+| `api/native.ts` | 原生能力适配层：`Dialogs.OpenFile`、`Clipboard.SetText`、`Browser.OpenURL`（系统默认浏览器开外链）、`browser.openInBuiltin`（内置浏览器窗口，经 BrowserService 绑定）、KV 转发；替代原 `window.preload.inject` |
 | `utils/dsh/patch.ts` | cordis.patch.yml 解析 / 增删改 / 序列化（`yaml` 库 Document 级操作，保证注释与 `!!js` 表达式往返保真） |
 | `utils/ansi.ts` | ANSI SGR 转 HTML（`ansiToHtml`）：终端 16 色 + 粗体 / 斜体 / 下划线等样式，文本 HTML 转义防 XSS；安装控制台渲染用 |
 | `utils/native/KeyValueUtil.ts` | KV 访问（async），设置 / 服务 PID / 主题 / 语言持久化 |
 | `hooks/DbStorage.ts` | 持久化 ref：内存态即时响应、异步落库（替代原 `UtoolsDbStorage`） |
 | `store/dsh/index.ts` | 全局 store：profiles / bundles / patch / dsh 解析 / 设置 / CLI 执行；web 服务启停经薄包装转发 `store/dsh/server.ts` |
-| `store/dsh/server.ts` | dsh web 服务启停与状态（从主 store 拆分，控制行数）：`refreshServerStatus`（PID + lsof 判定）**保留 busy**、`serverStart/serverStop`（busy 互斥）、`restartServer` **全程持有 busy**（stop→start 无间隙，重启期间按钮持续禁用）、日志监听 `attachServerLog` |
+| `store/dsh/server.ts` | dsh web 服务启停与状态（从主 store 拆分，控制行数）：`refreshServerStatus`（PID + lsof 判定）**保留 busy**、`serverStart/serverStop`（busy 互斥）、`restartServer` **全程持有 busy**（stop→start 无间隙，重启期间按钮持续禁用）、日志监听 `attachServerLog`；`openServer` 按 `settings.browserMode` 分流——builtin 走 `nativeApi.browser.openInBuiltin`（内置窗口），system 走 `nativeApi.shell.openExternal`（默认浏览器） |
 | `hooks/UseTray.ts` | 系统托盘桥接：watch `server.status` + `hasWebApp` 回推 `tray:service-status`；响应 `tray:toggle-service`（按状态调 serverStart/Stop）、`tray:quit-request`（先停服务再回 `tray:quit-ready`） |
 | `pages/profile/index.vue` | 首页：服务卡片（置顶）、header（profile 切换 + 搜索 + 安装）、官方 / 第三方分组（纯净模式开关位于第三方分组卡片头部 actions；设置入口在服务卡片行） |
 | `pages/profile/restart.ts` | 插件变更后的重启提示（从 index.vue 拆分控制行数）：`promptRestart(action, name?)` 按服务状态 / `confirmRestart` 设置决定是否弹确认并调用 `restartServer` |
 | `pages/setup/index.vue` | 全屏引导页：dsh 缺失时的安装命令 / 手动路径 / 文件选择 / 校验 |
 | `pages/redirect/RedirectHome.vue` | `/` 兜底重定向（dsh 未就绪 → `/setup`，否则 → 当前 profile 首页） |
-| `pages/settings/index.vue` | 设置页（`SubPageLayout` 返回）：dsh 路径 / 端口 / 主题 / 语言 |
+| `pages/settings/index.vue` | 设置页（`SubPageLayout` 返回）：dsh 路径 / 端口 / 浏览器打开方式（默认浏览器 or 内置浏览器 + 宽高，默认 1200×800）/ 主题 / 语言；浏览器方式与宽高走保存按钮（与 port 一致），主题 / 语言即时生效 |
 | `pages/profile/modals/` | `InstallPlugin.tsx` / `UpdatePlugin.tsx` 共用 `InstallPluginContent.vue`（双模式直装 / 更新抽屉：可中断 CLI + ANSI 控制台 + web 重启询问，仅「取消」按钮可关闭）、`PluginConfig.tsx` + `PluginConfigContent.vue`（命令式弹窗，tsx 外壳 + vue 内容） |
 | `i18n/` | zh / en 字典 + `useI18n`（KV 异步加载语言） |
 | `hooks/ColorMode.ts` | 亮 / 暗 / 跟随系统（`theme-mode` 属性切换 tdesign 暗色） |
@@ -90,7 +92,7 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 `ServerState.status ∈ 'stopped' | 'running-own' | 'running-foreign' | 'unknown'`；记录键 `/key/dsh/server/<profile>` 存 `{ pid, port }`（KV 存储）。
 
 ### 设置（KV 存储，`os.UserConfigDir()/dsh-plugin-manager/kv.json`）
-- `/key/dsh/settings` → `{ dshPath, port, confirmRestart }`（port 默认 3080）
+- `/key/dsh/settings` → `{ dshPath, port, confirmRestart, browserMode, builtinWidth, builtinHeight }`（port 默认 3080；browserMode ∈ 'system' | 'builtin'，默认 'system'；内置窗口默认 1200×800）
 - `/key/app/theme-mode` → `'light' | 'dark' | 'system'`
 - `/key/app/lang` → `'zh' | 'en'`
 
@@ -111,3 +113,4 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 13. **系统托盘（菜单栏）**：托盘在 Go 侧构建（根目录 `tray.go`），左键点图标原生弹出菜单（不绑定 AttachWindow/OnClick）；"显示/隐藏"纯原生（`win.Hide` / `win.Show().Focus()`）；"启动/停止服务"经事件路由到前端复用 store 启停逻辑（Go 侧不重复实现），标签由前端回推的 `tray:service-status` 动态切换；"退出"发 `tray:quit-request`，前端 `serverStop()` 后回 `tray:quit-ready`，3 秒超时兜底。**关闭到托盘**：`win.RegisterHook(events.Mac.WindowShouldClose)` 中 `Cancel()` + `Hide()`（钩子在默认销毁监听前执行，窗口不销毁；程序化 `Close()` 走 `Common.WindowClosing` 直发，不受钩子影响）；`Mac.ApplicationShouldTerminateAfterLastWindowClosed=false`。托盘图标为 `build/appicon.png`（彩色，可后续换 `SetTemplateIcon` 模板图精修）。
 14. **dev 模式的 `/wails/custom.js` 404**：Wails v3 开发模式（runtime.debug.js）启动时会探测 `/wails/custom.js`（server 模式专用的 WebSocket 事件脚本），桌面模式下 Wails 故意返回 404 让 `loadOptionalScript` 跳过——DevTools console 里的 `Failed to load resource: 404 (wails://.../wails/custom.js)` 是预期无害噪音，事件走原生 IPC 不受影响；生产构建（runtime.prod.js）无此请求。
 15. **安装 / 更新抽屉关闭约束**：`InstallPlugin.tsx` / `UpdatePlugin.tsx` 均配置 `closeBtn: false / closeOnEscKeydown: false / closeOnOverlayClick: false`，只能通过内容组件「取消」按钮关闭（运行中取消按钮禁用，只能点「取消安装 / 取消更新」= `kill(pid)` 终止进程，`Kill` 为 SIGTERM → 3s → SIGKILL）；`InstallPluginContent.vue` 按 `mode` prop 区分 install / update：命令经 `store.dshCommand()` 取 `{command, prefix}`，拼 `plugin --profile <p> add <spec>`（spec 含 `github:user/repo#branch` 原样透传）或 `plugin --profile <p> update <name>`；`onBeforeUnmount` 兜底杀掉未结束进程（drawer `destroyOnClose` 销毁组件时）。
+16. **内置浏览器窗口**：设置「浏览器打开方式」选内置浏览器后，首页服务卡片「打开」走 `store.openServer()` → `nativeApi.browser.openInBuiltin(url, 宽, 高)` → Go 侧 `BrowserService.OpenInBuiltin` 动态建窗加载 `http://127.0.0.1:<port>`（标题 "DSH Web"）；选默认浏览器则仍走 `Browser.OpenURL`。窗口单例复用：重复点击只 `Focus`，URL 变化才 `SetURL`（端口改动后自动刷新地址），关闭窗口后下次点击重建。注意：远程页面不会注入 wails runtime（纯浏览器用途，页面内无 wails API 可用，符合预期）；Wails JS runtime 无建窗 API，此能力只能在 Go 侧实现。

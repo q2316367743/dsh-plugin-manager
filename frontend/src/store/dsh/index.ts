@@ -23,7 +23,14 @@ import type {
 } from '@/types/dsh'
 import { parsePatchEntries, readPatchConfig } from '@/utils/dsh/patch'
 
-const defaultSettings: AppSettings = { dshPath: '', port: 3080, confirmRestart: true }
+const defaultSettings: AppSettings = {
+  dshPath: '',
+  port: 3080,
+  confirmRestart: true,
+  browserMode: 'system',
+  builtinWidth: 1200,
+  builtinHeight: 800
+}
 
 function isOfficial(name: string): boolean {
   return name.startsWith('@deepseek-ai/')

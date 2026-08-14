@@ -95,6 +95,9 @@ export interface ServerState {
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type Lang = 'zh' | 'en'
 
+/** 浏览器打开方式：system 系统默认浏览器 / builtin 内置浏览器窗口 */
+export type BrowserOpenMode = 'system' | 'builtin'
+
 export interface AppSettings {
   /** 手动配置的 dsh 可执行文件路径 */
   dshPath: string
@@ -102,6 +105,12 @@ export interface AppSettings {
   port: number
   /** 启用/禁用/卸载插件后询问是否立即重启 web 服务 */
   confirmRestart: boolean
+  /** 打开 dsh web 页面的方式 */
+  browserMode: BrowserOpenMode
+  /** 内置浏览器窗口宽度 */
+  builtinWidth: number
+  /** 内置浏览器窗口高度 */
+  builtinHeight: number
 }
 
 export interface SpawnHandlers {

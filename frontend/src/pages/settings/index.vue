@@ -14,6 +14,19 @@
         <t-form-item :label="t('settings.port')">
           <t-input-number v-model="port" :min="1" :max="65535" />
         </t-form-item>
+        <t-form-item :label="t('settings.browserMode')">
+          <t-radio-group v-model="browserMode">
+            <t-radio-button value="system">{{ t('settings.browserSystem') }}</t-radio-button>
+            <t-radio-button value="builtin">{{ t('settings.browserBuiltin') }}</t-radio-button>
+          </t-radio-group>
+        </t-form-item>
+        <t-form-item v-if="browserMode === 'builtin'" :label="t('settings.builtinSize')">
+          <div class="flex items-center gap-8px">
+            <t-input-number v-model="builtinWidth" :min="200" :max="7680" class="flex-1" />
+            <span class="builtin-size-x">×</span>
+            <t-input-number v-model="builtinHeight" :min="200" :max="7680" class="flex-1" />
+          </div>
+        </t-form-item>
         <t-form-item :label="t('settings.theme')">
           <t-radio-group v-model="theme">
             <t-radio-button value="light">{{ t('settings.themeLight') }}</t-radio-button>
@@ -42,7 +55,7 @@ import { useI18n } from '@/i18n'
 import { useColorMode } from '@/hooks'
 import MessageUtil from '@/utils/modal/MessageUtil'
 import { nativeApi } from '@/api/native'
-import type { Lang, ThemeMode } from '@/types/dsh'
+import type { BrowserOpenMode, Lang, ThemeMode } from '@/types/dsh'
 
 const store = useDshStore()
 const { t, lang: langState, setLang } = useI18n()
@@ -53,6 +66,9 @@ const port = ref(store.settings.port)
 const theme = ref<ThemeMode>(mode.value)
 const lang = ref<Lang>(langState.value)
 const confirmRestart = ref(store.settings.confirmRestart)
+const browserMode = ref<BrowserOpenMode>(store.settings.browserMode)
+const builtinWidth = ref(store.settings.builtinWidth)
+const builtinHeight = ref(store.settings.builtinHeight)
 
 // 主题 / 语言即时生效并持久化（各自模块负责存储）
 watch(theme, (value) => setMode(value))
@@ -68,7 +84,13 @@ async function chooseFile() {
 
 async function save() {
   await store.saveDshPath(dshPath.value.trim())
-  store.saveSettings({ port: port.value, confirmRestart: confirmRestart.value })
+  store.saveSettings({
+    port: port.value,
+    confirmRestart: confirmRestart.value,
+    browserMode: browserMode.value,
+    builtinWidth: builtinWidth.value,
+    builtinHeight: builtinHeight.value
+  })
   if (store.dsh.state === 'ok') {
     MessageUtil.success(t('banner.verified', { version: store.dsh.version ?? '' }))
   } else {
@@ -82,6 +104,10 @@ async function save() {
 
   .settings-form {
     margin-top: 8px;
+
+    .builtin-size-x {
+      color: var(--td-text-color-secondary);
+    }
   }
 }
 </style>

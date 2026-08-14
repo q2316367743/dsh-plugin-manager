@@ -4,7 +4,7 @@
  * 组件 / store 一律经本模块访问原生能力（RL-03），禁止直接触碰 runtime。
  */
 import { Browser, Clipboard, Dialogs } from '@wailsio/runtime'
-import { KVService } from '../../bindings/dsh-plugin-manager/services'
+import { BrowserService, KVService } from '../../bindings/dsh-plugin-manager/services'
 
 /** 文件选择过滤器（与原 utools dialog 选项兼容） */
 export interface NativeFileFilter {
@@ -48,6 +48,13 @@ export const nativeApi = {
   shell: {
     openExternal: async (url: string): Promise<void> => {
       await Browser.OpenURL(url)
+    }
+  },
+
+  browser: {
+    /** 在内置浏览器窗口打开 url（窗口已存在则聚焦复用） */
+    openInBuiltin: async (url: string, width: number, height: number): Promise<void> => {
+      await BrowserService.OpenInBuiltin(url, width, height)
     }
   },
 

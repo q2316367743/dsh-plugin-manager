@@ -135,7 +135,12 @@ export async function stopServer(store: DshStore) {
 }
 
 export function openServer(store: DshStore) {
-  void nativeApi.shell.openExternal(`http://127.0.0.1:${store.settings.port}`)
+  const url = `http://127.0.0.1:${store.settings.port}`
+  if (store.settings.browserMode === 'builtin') {
+    void nativeApi.browser.openInBuiltin(url, store.settings.builtinWidth, store.settings.builtinHeight)
+  } else {
+    void nativeApi.shell.openExternal(url)
+  }
 }
 
 /** 重启 web 服务（仅对本管理器启动的服务生效），返回是否已重启 */
