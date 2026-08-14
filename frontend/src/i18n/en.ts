@@ -140,5 +140,13 @@ export const en: Record<I18nKey, string> = {
   'settings.language': 'Language',
   'settings.confirmRestart': 'Ask to restart after plugin changes',
   'settings.confirmRestartHint':
-    'After enabling / disabling / uninstalling a plugin or toggling pure mode, ask whether to restart the web server if it is running'
+    'After enabling / disabling / uninstalling a plugin or toggling pure mode, ask whether to restart the web server if it is running',
+
+  // app updater
+  'updater.readyTitle': 'App update',
+  'updater.readyDesc': 'A new version is ready. Restart the app to apply it?',
+  'updater.restart': 'Restart now',
+  'updater.later': 'Later',
+  'updater.upToDate': 'You are up to date',
+  'updater.checkFailed': 'Update check failed: {error}'
 }

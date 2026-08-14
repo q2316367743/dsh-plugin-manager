@@ -131,7 +131,15 @@ export const zh = {
   'settings.themeSystem': '跟随系统',
   'settings.language': '语言',
   'settings.confirmRestart': '插件变更后询问是否重启服务',
-  'settings.confirmRestartHint': '启用 / 禁用 / 卸载插件或切换纯净模式后，若 web 服务在运行则询问是否立即重启'
+  'settings.confirmRestartHint': '启用 / 禁用 / 卸载插件或切换纯净模式后，若 web 服务在运行则询问是否立即重启',
+
+  // 应用自动更新
+  'updater.readyTitle': '应用更新',
+  'updater.readyDesc': '新版本已下载完成，重启应用后生效，是否立即重启？',
+  'updater.restart': '立即重启',
+  'updater.later': '稍后',
+  'updater.upToDate': '已是最新版本',
+  'updater.checkFailed': '检查更新失败：{error}'
 }
 
 export type I18nKey = keyof typeof zh

@@ -23,3 +23,7 @@ build/android/gen/
 # 其他
 .DS_Store
 src-utools
+
+# 更新签名密钥对（wails3 updater genkey 产物；公钥已内嵌 main.go，私钥只存发布侧，均勿入库）
+updater.key
+updater.key.pub

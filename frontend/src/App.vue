@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router'
 import { useDshStore } from '@/store/dsh'
-import { useTray } from '@/hooks'
+import { useTray, useUpdater } from '@/hooks'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +14,8 @@ const store = useDshStore()
 
 // 系统托盘桥接：回推服务状态、响应托盘启停与退出操作
 useTray()
+// 应用自动更新桥接：更新就绪重启确认、托盘检查更新结果提示
+useUpdater()
 
 /**
  * 统一入口路由：

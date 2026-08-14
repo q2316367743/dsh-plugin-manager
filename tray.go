@@ -8,12 +8,14 @@
 package main
 
 import (
+	"context"
 	_ "embed" // 供 //go:embed 托盘图标使用
 	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/updater"
 
 	"dsh-plugin-manager/services"
 )
@@ -59,6 +61,20 @@ func setupTray(app *application.App, win *application.WebviewWindow) {
 			serviceItem.SetLabel("启动服务")
 		}
 		serviceItem.SetEnabled(status.Supported)
+	})
+	menu.AddSeparator()
+	// 检查更新：手动触发一次完整更新流程（headless，应用启动后每 6 小时也会自动检查）；
+	// 有更新时自动下载并暂存，就绪后前端弹重启确认；结果经 app:update-result 回传提示
+	menu.Add("检查更新").OnClick(func(*application.Context) {
+		go func() {
+			if err := app.Updater.CheckAndInstall(context.Background()); err != nil {
+				app.Event.Emit("app:update-result", map[string]string{"status": "error", "message": err.Error()})
+				return
+			}
+			if app.Updater.State() == updater.StateUpToDate {
+				app.Event.Emit("app:update-result", map[string]string{"status": "up-to-date"})
+			}
+		}()
 	})
 	menu.AddSeparator()
 	menu.Add("退出").OnClick(func(*application.Context) {
