@@ -51,7 +51,7 @@ fi
 
 for tool in wails3 makensis zip unzip hdiutil codesign; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "✗ 缺少 $tool（mac 需 brew install makensis）" >&2
+    echo "✗ 缺少 ${tool}（mac 需 brew install makensis）" >&2
     exit 1
   fi
 done
@@ -143,14 +143,14 @@ check_zip() {
   local tops
   tops="$(unzip -Z1 "$zip" | awk -F/ 'NF {print $1}' | sort -u)"
   if [ "$tops" != "$expected" ]; then
-    echo "✗ $zip 顶层条目异常：$tops（期望 $expected）" >&2
+    echo "✗ $zip 顶层条目异常：${tops}（期望 ${expected}）" >&2
     return 1
   fi
   if unzip -Z1 "$zip" | grep -Eq '(^|/)__MACOSX(/|$)|(^|/)\._'; then
     echo "✗ $zip 包含 __MACOSX 或 AppleDouble 文件" >&2
     return 1
   fi
-  echo "  ✓ $zip 顶层条目 = $expected，无 AppleDouble"
+  echo "  ✓ $zip 顶层条目 = ${expected}，无 AppleDouble"
 }
 check_zip bin/dsh-plugin-manager-darwin-arm64.zip dsh-plugin-manager.app
 check_zip bin/dsh-plugin-manager-darwin-amd64.zip dsh-plugin-manager.app
@@ -209,7 +209,7 @@ wails3 updater verify -manifest bin/update.json -publickey updater.key.pub -dir 
 # ── 汇总 ─────────────────────────────────────────────────────────
 echo
 echo "======================================================"
-echo " ✅ 7 个发布产物已生成（版本 $VERSION）"
+echo " ✅ 7 个发布产物已生成（版本 ${VERSION}）"
 echo "======================================================"
 ls -lh bin/dsh-plugin-manager-amd64-installer.exe \
       bin/dsh-plugin-manager-darwin-arm64.dmg \
