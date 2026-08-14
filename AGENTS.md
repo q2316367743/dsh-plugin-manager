@@ -81,8 +81,13 @@
 5. **组件存放规则**
 
 - 非公共组件：放在当前页面目录下的 `components/`
-- 通用组件：才可放入 `src/components/`
-- 禁止将业务组件直接放入 `src/components`
+- 通用组件：才可放入 `frontend/src/components/`
+- 禁止将业务组件直接放入 `frontend/src/components`
+
+6. **Wails 原生能力访问**
+
+- 前端统一经 `frontend/src/api/native.ts`（对话框 / 剪贴板 / 打开外链 / KV）与 `frontend/src/api/dsh.ts`（服务绑定 / fetch / 事件式 CLI）访问原生能力，禁止直接触碰 `@wailsio/runtime` 或 `bindings/`
+- 改动 `services/*.go` 后需重跑 `wails3 generate bindings` 刷新 `frontend/bindings/`
 
 ---
 
@@ -91,28 +96,37 @@
 ### ✅ 推荐目录结构
 
 ```text
-src/
-├── api/
-│   └── user.ts
-├── pages/
-│   └── dashboard/
-│       ├── index.vue
-│       ├── components/
-│       │   └── StatCard.vue
-│       └── modals/
-│           └── FilterDrawer.tsx
-├── components/
-│   └── BaseTable.vue
+/（仓库根）
+├── main.go                  # Wails 入口（embed frontend/dist + 服务注册）
+├── services/                # Go 服务绑定（DshService / ProcService / FileService / KVService）
+├── build/                   # 打包资源与平台构建任务
+├── config.yml / Taskfile.yml
+└── frontend/
+    ├── bindings/            # wails3 生成的 TS 绑定（勿手改）
+    └── src/
+        ├── api/
+        │   ├── dsh.ts       # 业务 API（服务绑定 + fetch + 事件式 CLI）
+        │   └── native.ts    # 原生能力（对话框 / 剪贴板 / 外链 / KV）
+        ├── pages/
+        │   └── dashboard/
+        │       ├── index.vue
+        │       ├── components/
+        │       │   └── StatCard.vue
+        │       └── modals/
+        │           └── FilterDrawer.tsx
+        └── components/
+            └── BaseTable.vue
 ```
 
 ### ❌ 错误示例与原因
 
 | 错误示例                                  | 原因                                                        |
 |-------------------------------------------|-------------------------------------------------------------|
-| `src/UserList.vue`                        | 违反 RL‑02，业务代码不应放在根目录                          |
+| `frontend/src/UserList.vue`               | 违反 RL‑02，业务代码不应放在前端根目录                      |
 | `pages/dashboard/api.ts`                  | 违反 RL‑03，API 必须集中在 `@/api`                          |
-| `components/OrderDetailModal.vue`         | 违反组件存放规则，非通用组件不应放在 `src/components`       |
+| `components/OrderDetailModal.vue`         | 违反组件存放规则，非通用组件不应放在 `frontend/src/components` |
 | 页面中直接使用 `fetch('/api/user')`       | 违反 RL‑03，绕过 `@/api`                                    |
+| 组件内直接调用 `Dialogs.OpenFile`         | 违反约定，原生能力必须经 `@/api/native` 访问                |
 | 使用 `<select>` 或 `alert()`              | 违反 RL‑05，必须使用 `tdesign`                              |
 | 手写 SVG 图标                             | 违反 UI 约定，应使用 `tdesign` 图标                         |
 | `const data: any = res.data`              | 违反 RL‑04，禁止 `any`                                      |

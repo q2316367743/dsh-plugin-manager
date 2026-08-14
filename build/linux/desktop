@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=My Product
+Comment=A dsh-plugin-manager application
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/dsh-plugin-manager %u
+Terminal=false
+Type=Application
+Icon=dsh-plugin-manager
+Categories=Utility;
+StartupWMClass=dsh-plugin-manager
+
+ 

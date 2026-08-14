@@ -1,7 +1,25 @@
+# IDE
 .vscode
-.git
 .idea
-node_modules
-src-utools/dist
-src-utools/node_modules
 *.iml
+
+# Node / 前端
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Go / Wails
+bin
+.task
+build/linux/appimage/build
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+
+# 移动端构建产物（模板生成，按机器保留）
+build/ios/xcode/overlay.json
+build/ios/xcode/gen/
+build/android/overlay.json
+build/android/gen/
+
+# 其他
+.DS_Store
+src-utools

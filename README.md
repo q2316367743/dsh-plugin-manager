@@ -1,19 +1,38 @@
-# vite的utools模板
+# DSH 插件管理器
 
-## 使用说明
+基于 **Wails v3**（Go + Vue 3 / TDesign）的 dsh（DeepSeek Harness）插件管理器桌面应用。按 profile 管理 dsh 插件的启用 / 禁用、安装 / 移除、拖拽排序、纯净模式、dsh web 服务启停、插件 config 编辑、profile 视图导入导出、检查更新。
 
-src-utools目录为utools项目目录，新建utools项目后，设置`plugin.json`为`src-utools`的`plugin.json`。
+## 技术栈
 
-图标请放在`src-utools/public`中，如果打包`web`版，请按照vite方式处理。
+- **后端**：Go + Wails v3（`services/`：DshService / ProcService / FileService / KVService）
+- **前端**：Vue 3 + TDesign + Vite + UnoCSS（`frontend/`）
+- **原生能力**：Wails runtime（对话框 / 剪贴板 / 打开外链 / 事件系统）
 
-在`src-utools/preload.js`中写入代码后，挂载到`window.preload`上，修改`src/vite-env.d.ts`文件，将定义写在`preload`中。
+## 开发
 
-请修改`src/global/Constant`中的项目信息
+前置要求：Go 1.24+、Node/pnpm、`wails3` CLI（`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`）。
 
-## 打包
+```bash
+wails3 dev      # 开发模式（vite 热更新 + Go 热重载）
+wails3 build    # 生产构建，产物 bin/dsh-plugin-manager
+```
 
-先在主目录下执行`pnpm build`进行打包，打包后的资源在`src-utools/dist`中，打包`src-utools`目录即可。
+改动 Go 服务后重跑 `wails3 generate bindings` 刷新前端绑定。
 
-## 注意
+前端单独校验（RL-07，仅 typecheck）：
 
-vite项目中，所有的静态资源引用都要使用相对路径，不能使用绝对路径
+```bash
+cd frontend && pnpm install && pnpm check
+```
+
+## 目录结构
+
+```
+├── main.go                  # Wails 入口（embed frontend/dist + 服务注册 + 窗口）
+├── services/                # Go 服务绑定（dsh 生态 / 进程 / 文件 / KV 存储）
+├── build/                   # 打包资源与平台构建任务
+├── config.yml / Taskfile.yml
+└── frontend/                # Vue 前端（含 wails3 生成的 bindings/）
+```
+
+详细技术文档见 [docs/01-plugin-manager.md](docs/01-plugin-manager.md)。
