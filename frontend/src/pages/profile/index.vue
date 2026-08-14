@@ -85,7 +85,6 @@ import type { BundleItem } from '@/types/dsh'
 
 const store = useDshStore()
 const { t } = useI18n()
-const route = useRoute()
 const router = useRouter()
 
 const profileOptions = computed(() =>
