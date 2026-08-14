@@ -1,0 +1,140 @@
+<template>
+  <div class="plugin-card">
+    <drag-move-icon class="drag-handle" />
+    <div class="plugin-info">
+      <div class="plugin-title">
+        <span class="plugin-name">{{ item.name }}</span>
+        <t-tag size="small" :theme="item.official ? 'primary' : 'default'" variant="light">
+          {{ item.official ? t('list.official') : t('list.thirdParty') }}
+        </t-tag>
+        <t-tag size="small" variant="outline">{{ sourceLabel }}</t-tag>
+        <t-tag v-if="item.hasUpdate" size="small" theme="warning" variant="light">
+          {{ t('plugin.hasUpdate') }}
+        </t-tag>
+        <span class="plugin-version">v{{ item.version }}</span>
+      </div>
+      <div class="plugin-desc">{{ item.description }}</div>
+      <div class="plugin-rows">{{ rowsLabel }}</div>
+    </div>
+    <div class="plugin-actions">
+      <t-switch
+        :value="item.enabled"
+        :disabled="item.official"
+        @change="onToggle"
+      />
+      <t-dropdown :options="menuOptions" trigger="click" @click="onMenu">
+        <t-button variant="text" shape="square">
+          <more-icon />
+        </t-button>
+      </t-dropdown>
+    </div>
+  </div>
+</template>
+<script lang="ts" setup>
+import type { DropdownOption } from 'tdesign-vue-next'
+import { DragMoveIcon, MoreIcon } from 'tdesign-icons-vue-next'
+import type { BundleItem } from '@/types/dsh'
+import { useI18n } from '@/i18n'
+
+const props = defineProps<{ item: BundleItem }>()
+const emit = defineEmits<{
+  (e: 'toggle', enabled: boolean): void
+  (e: 'action', value: string): void
+}>()
+
+const { t } = useI18n()
+
+const sourceLabel = computed(() => {
+  switch (props.item.source) {
+    case 'npm':
+      return t('plugin.source.npm')
+    case 'github':
+      return t('plugin.source.github')
+    case 'local':
+      return t('plugin.source.local')
+    default:
+      return t('plugin.source.unknown')
+  }
+})
+
+const rowsLabel = computed(() => props.item.rows.map((row) => row.id).join(' · '))
+
+const menuOptions = computed(() => {
+  const options: Array<{ content: string; value: string }> = [
+    { content: t('plugin.config'), value: 'config' }
+  ]
+  if (props.item.hasUpdate && props.item.latest) {
+    options.push({ content: t('plugin.updateTo', { version: props.item.latest }), value: 'update' })
+  }
+  const url = props.item.homepage || props.item.repository
+  if (url) options.push({ content: t('plugin.openHomepage'), value: 'homepage' })
+  if (!props.item.official) options.push({ content: t('plugin.remove'), value: 'remove' })
+  return options
+})
+
+function onToggle(enabled: boolean | string | number) {
+  emit('toggle', !!enabled)
+}
+
+function onMenu(data: DropdownOption) {
+  emit('action', String(data.value))
+}
+</script>
+<style scoped lang="less">
+.plugin-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+
+  .drag-handle {
+    flex-shrink: 0;
+    color: var(--td-text-color-placeholder);
+    cursor: move;
+  }
+
+  .plugin-info {
+    flex: 1;
+    min-width: 0;
+
+    .plugin-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+
+      .plugin-name {
+        font-weight: 600;
+        color: var(--td-text-color-primary);
+      }
+
+      .plugin-version {
+        font-size: 12px;
+        color: var(--td-text-color-placeholder);
+      }
+    }
+
+    .plugin-desc {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--td-text-color-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .plugin-rows {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--td-text-color-placeholder);
+    }
+  }
+
+  .plugin-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+}
+</style>

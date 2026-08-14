@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "commonjs",
+    "moduleResolution": "node16",
+    "rootDir": "src-utools",
+    "allowSyntheticDefaultImports": true,
+    "lib": [
+      "ES6",
+      "DOM",
+    ],
+    "types": [
+      "utools-api-types",
+      "@ztools-center/ztools-api-types"
+    ]
+  },
+  "include": ["src-utools/**/*"]
+}

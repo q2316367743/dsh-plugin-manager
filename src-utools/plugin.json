@@ -1,0 +1,29 @@
+{
+  "$schema": "../node_modules/utools-api-types/resource/utools.schema.json",
+
+  "name": "dsh-plugin-manager",
+  "title": "DSH 插件管理器",
+  "description": "按 profile 管理 dsh 插件：启用/禁用、安装、拖拽排序、纯净模式、启动 dsh web",
+  "version": "1.0.0",
+
+  "main": "dist/index.html",
+  "preload": "preload.js",
+  "logo": "public/logo.png",
+  "platform": ["win32", "darwin", "linux"],
+  "development": {
+    "main": "http://localhost:5173/"
+  },
+  "pluginSetting": {
+    "single": true,
+    "height": 640
+  },
+  "features": [
+    {
+      "code": "launch",
+      "explain": "DSH 插件管理器：管理 dsh profile 的插件与服务",
+      "icon": "public/logo.png",
+      "platform": ["win32", "darwin", "linux"],
+      "cmds": ["dsh"]
+    }
+  ]
+}
