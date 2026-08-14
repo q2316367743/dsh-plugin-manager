@@ -257,16 +257,6 @@ export const useDshStore = defineStore('dsh', {
       }
     },
 
-    /** 安装插件（spec 支持 pkg / pkg@version / github:user/repo / git 地址） */
-    async installBundle(spec: string, onOutput: (chunk: string) => void): Promise<boolean> {
-      const code = await this.runCli(
-        ['plugin', '--profile', this.currentProfile, 'add', spec],
-        onOutput
-      )
-      if (code === 0) await this.loadProfile(this.currentProfile)
-      return code === 0
-    },
-
     async removeBundle(bundle: BundleItem, onOutput: (chunk: string) => void): Promise<boolean> {
       const code = await this.runCli(
         ['plugin', '--profile', this.currentProfile, 'remove', bundle.name],

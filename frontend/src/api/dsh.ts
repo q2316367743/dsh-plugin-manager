@@ -138,6 +138,44 @@ export const dshApi = {
     })
   },
 
+  /**
+   * 可中断的流式 CLI 执行：启动后返回 pid 与等待退出的 Promise，
+   * 可经 kill(pid) 中途终止；进程退出（含被杀）后自动清理监听。
+   * 启动失败（pid ≤ 0）时清理监听并返回，此时 exit 不会 resolve。
+   */
+  runCliInterruptible(
+    jobId: string,
+    cmd: string,
+    args: string[],
+    onOutput: (stream: 'stdout' | 'stderr', text: string) => void
+  ): Promise<{ pid: number; exit: Promise<number> }> {
+    return new Promise((resolve) => {
+      let offOutput = () => {}
+      let offExit = () => {}
+      const exit = new Promise<number>((resolveExit) => {
+        offExit = Events.On('proc:exit', (ev: { data: ProcExitPayload }) => {
+          const payload = ev.data
+          if (payload.jobId === jobId) {
+            offOutput()
+            offExit()
+            resolveExit(payload.code ?? 1)
+          }
+        })
+      })
+      offOutput = Events.On('proc:output', (ev: { data: ProcOutputPayload }) => {
+        const payload = ev.data
+        if (payload.jobId === jobId) onOutput(payload.stream as 'stdout' | 'stderr', payload.text)
+      })
+      void ProcService.RunCli(jobId, cmd, args, false).then((pid) => {
+        if (pid <= 0) {
+          offOutput()
+          offExit()
+        }
+        resolve({ pid, exit })
+      })
+    })
+  },
+
   /** 启动流式子进程（不等待退出，长驻服务用），返回 pid；启动失败返回 -1 */
   spawnStream(jobId: string, cmd: string, args: string[], detached: boolean): Promise<number> {
     return ProcService.RunCli(jobId, cmd, args, detached)

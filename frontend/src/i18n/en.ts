@@ -103,22 +103,16 @@ export const en: Record<I18nKey, string> = {
 
   // install
   'install.title': 'Install plugin',
-  'install.tabNpm': 'npm',
-  'install.tabGithub': 'GitHub',
-  'install.tabDirect': 'Direct',
-  'install.npmPlaceholder': 'Search npm packages, e.g. dsh-better-sidebar',
-  'install.githubPlaceholder': 'Search dsh plugins on GitHub',
-  'install.directPlaceholder': 'Paste a package name / pkg@version / github:user/repo / git URL',
+  'install.placeholder': 'Package name / pkg@version / github:user/repo#branch',
   'install.install': 'Install',
-  'install.installing': 'Installing…',
-  'install.installed': 'Installed: {name}',
-  'install.failed': 'Install failed, check the log below',
-  'install.empty': 'No results, try another keyword',
-  'install.error': 'Search failed: {error}',
-  'install.logTitle': 'Install log',
-  'install.back': 'Back to search',
-  'install.done': 'Done',
-  'install.openHomepage': 'Homepage',
+  'install.cancel': 'Cancel',
+  'install.cancelInstall': 'Cancel install',
+  'install.consolePlaceholder': 'Install output will show here',
+  'install.spawnFailed': 'Failed to start dsh — configure the dsh path in settings first',
+  'install.killed': 'Install cancelled',
+  'install.failed': 'Install failed (exit code {code})',
+  'install.restartAsk':
+    'Plugin installed. It takes effect after restarting the dsh web server. Restart now?',
 
   // config modal
   'config.title': 'Plugin config',
