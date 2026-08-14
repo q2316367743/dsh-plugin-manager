@@ -80,7 +80,8 @@ async function startServerInternal(store: DshStore) {
   const pid = await dshApi.spawnStream(
     jobId,
     runner.command,
-    [...runner.prefix, '--profile', store.currentProfile, '--port', String(port)],
+    // 固定启动 web
+    [...runner.prefix, '--profile', 'web', '--port', String(port)],
     true
   )
   if (pid > 0) {
