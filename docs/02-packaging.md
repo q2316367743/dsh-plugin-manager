@@ -37,6 +37,15 @@ https://static.esion.xyz/public/static/wails/dsh-plugin-manager/
 
 ## 三、打包全流程
 
+> **一键脚本**：`scripts/package.sh` 将下面 0–5 节串成一条命令，执行后 `bin/` 下直接产出全部 7 个文件。
+> 脚本从 `build/config.yml` 读取 `info.version`（版本唯一来源），并自带 zip 单一顶层条目、hdiutil verify、
+> `wails3 updater verify` 自检。用法：
+> ```
+> scripts/package.sh             # adhoc 签名（本地自测）
+> SIGN=1 scripts/package.sh      # 先 Developer ID 签名两个 .app（身份取 wails3 setup 默认或 DEV_ID 环境变量）
+> DEV_ID="Developer ID Application: ..." SIGN=1 NOTARIZE=1 scripts/package.sh   # 签名 + 公证（需先存凭据，见第四节）
+> ```
+
 ### 0. 准备
 
 - 确保 `wails3` 在 PATH：`export PATH="$HOME/go/bin:$PATH"`（本机位于 `~/go/bin`）。

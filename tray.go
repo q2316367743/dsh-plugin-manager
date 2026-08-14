@@ -27,8 +27,11 @@ var trayIcon []byte
 // win 需保持存活（不要 Close/Destroy），"显示/隐藏"与"关闭到托盘"都依赖它。
 func setupTray(app *application.App, win *application.WebviewWindow) {
 	// 关闭到托盘：钩子在默认销毁监听之前执行，Cancel 阻止窗口销毁，仅隐藏。
-	// 程序化 Close()/退出走 Common.WindowClosing 直发，不受此钩子影响。
-	win.RegisterHook(events.Mac.WindowShouldClose, func(e *application.WindowEvent) {
+	// 挂 Common.WindowClosing——各平台关闭事件经默认事件映射收敛到它
+	// （Mac 红点/Cmd+W、Windows 关闭按钮、Linux WM 关闭），保证跨平台一致；
+	// 若只挂 Mac.WindowShouldClose，Windows 上点关闭会销毁窗口并触发
+	// "最后一个窗口关闭即退出"（PostQuitMessage），托盘随之消失。
+	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		e.Cancel()
 		win.Hide()
 	})

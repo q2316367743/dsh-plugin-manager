@@ -129,6 +129,15 @@ func main() {
 		Mac: application.MacOptions{
 			// 关闭主窗口不退出应用，转由托盘"显示/隐藏"找回（关闭到托盘）
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
+			// 菜单栏常驻应用（Accessory）：不显示 Dock 图标。
+			// 否则窗口关闭后 Dock 图标残留且点按无响应（无 reopen 处理），体验割裂。
+			ActivationPolicy: application.ActivationPolicyAccessory,
+		},
+		Windows: application.WindowsOptions{
+			// 最后一个窗口关闭时不退出进程，应用驻留托盘。
+			// 与 tray.go 的关闭钩子配合：钩子负责"点关闭只隐藏"，此开关兜底
+			// 窗口被其它路径销毁时进程不会随窗口退出（托盘保持存活）。
+			DisableQuitOnLastWindowClosed: true,
 		},
 	})
 
