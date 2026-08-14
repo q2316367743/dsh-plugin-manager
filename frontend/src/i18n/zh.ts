@@ -47,6 +47,9 @@ export const zh = {
   'list.empty': '该平台暂无插件，点击「安装插件」搜索添加',
   'list.searchPlaceholder': '搜索插件名称或描述…',
   'list.noMatch': '没有匹配的插件',
+  'list.refresh': '刷新列表',
+  'list.refreshDone': 'profile 列表已刷新',
+  'list.refreshFailed': '刷新 profile 列表失败',
 
   // 工具栏
   'toolbar.install': '安装插件',

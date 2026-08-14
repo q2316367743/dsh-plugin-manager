@@ -50,6 +50,9 @@ export const en: Record<I18nKey, string> = {
   'list.empty': 'No plugins in this profile yet. Click "Install plugin" to search and add.',
   'list.searchPlaceholder': 'Search plugins by name or description…',
   'list.noMatch': 'No matching plugins',
+  'list.refresh': 'Refresh list',
+  'list.refreshDone': 'Profile list refreshed',
+  'list.refreshFailed': 'Failed to refresh profile list',
 
   // toolbar
   'toolbar.install': 'Install plugin',

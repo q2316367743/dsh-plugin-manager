@@ -3,7 +3,7 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleDisplayName</key>
-		<string>DSH Plugin Manager (Dev)</string>
+		<string>dsh 助手 (Dev)</string>
 		<key>CFBundleExecutable</key>
 		<string>dsh-plugin-manager</string>
 		<key>CFBundleGetInfoString</key>
@@ -11,7 +11,7 @@
 		<key>CFBundleIdentifier</key>
 		<string>com.dsh.pluginmanager.dev</string>
 		<key>CFBundleName</key>
-		<string>DSH Plugin Manager (Dev)</string>
+		<string>dsh 助手 (Dev)</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

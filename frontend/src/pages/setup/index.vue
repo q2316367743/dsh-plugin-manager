@@ -3,7 +3,7 @@
     <div class="setup-card">
       <div class="setup-header">
         <div class="setup-logo">
-          <command-icon />
+          <command-icon/>
         </div>
         <h1 class="setup-title">{{ t('banner.title') }}</h1>
         <p class="setup-desc">{{ t('banner.desc') }}</p>
@@ -14,25 +14,27 @@
           <t-tag theme="primary" variant="light">{{ t('banner.installBun') }}</t-tag>
           <code class="cmd">bun install -g @deepseek-ai/dsh</code>
           <t-button size="small" variant="text" shape="square" @click="copyCmd('bun install -g @deepseek-ai/dsh')">
-            <copy-icon />
+            <copy-icon/>
           </t-button>
         </div>
         <div class="setup-cmd">
           <t-tag theme="primary" variant="light">{{ t('banner.installNpm') }}</t-tag>
           <code class="cmd">npm install -g @deepseek-ai/dsh</code>
           <t-button size="small" variant="text" shape="square" @click="copyCmd('npm install -g @deepseek-ai/dsh')">
-            <copy-icon />
+            <copy-icon/>
           </t-button>
         </div>
       </div>
 
-      <t-divider />
+      <t-divider/>
 
       <div class="setup-manual">{{ t('banner.manual') }}</div>
       <div class="setup-form">
-        <t-input v-model="pathInput" :placeholder="t('banner.placeholder')" clearable class="flex-1" />
+        <t-input v-model="pathInput" :placeholder="t('banner.placeholder')" clearable class="flex-1"/>
         <t-button variant="outline" @click="chooseFile">
-          <template #icon><folder-icon /></template>
+          <template #icon>
+            <folder-icon/>
+          </template>
           {{ t('banner.chooseFile') }}
         </t-button>
         <t-button theme="primary" :loading="verifying" @click="verify">
@@ -41,10 +43,10 @@
       </div>
 
       <div v-if="store.dsh.state === 'ok' && store.dsh.version" class="setup-ok">
-        {{ t('banner.verified', { version: store.dsh.version }) }}
+        {{ t('banner.verified', {version: store.dsh.version}) }}
       </div>
       <div v-else-if="store.dsh.state === 'invalid'" class="setup-invalid">
-        {{ t('banner.invalid', { error: store.dsh.error ?? '' }) }}
+        {{ t('banner.invalid', {error: store.dsh.error ?? ''}) }}
       </div>
 
       <div class="setup-footer">
@@ -54,15 +56,15 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { useRouter } from 'vue-router'
-import { CommandIcon, CopyIcon, FolderIcon } from 'tdesign-icons-vue-next'
-import { useDshStore } from '@/store/dsh'
-import { useI18n } from '@/i18n'
+import {useRouter} from 'vue-router'
+import {CommandIcon, CopyIcon, FolderIcon} from 'tdesign-icons-vue-next'
+import {useDshStore} from '@/store/dsh'
+import {useI18n} from '@/i18n'
 import MessageUtil from '@/utils/modal/MessageUtil'
-import { nativeApi } from '@/api/native'
+import {nativeApi} from '@/api/native'
 
 const store = useDshStore()
-const { t } = useI18n()
+const {t} = useI18n()
 const router = useRouter()
 
 const pathInput = ref(store.settings.dshPath || '')
@@ -75,7 +77,7 @@ async function copyCmd(cmd: string) {
 
 /** 通过系统文件选择框选择 dsh 可执行文件 */
 async function chooseFile() {
-  const files = await nativeApi.dialog.open({ properties: ['openFile'] })
+  const files = await nativeApi.dialog.open({properties: ['openFile']})
   if (files && files.length > 0) {
     pathInput.value = files[0]
   }
@@ -86,11 +88,11 @@ async function verify() {
   try {
     await store.saveDshPath(pathInput.value.trim())
     if (store.dsh.state === 'ok') {
-      MessageUtil.success(t('banner.verified', { version: store.dsh.version ?? '' }))
+      MessageUtil.success(t('banner.verified', {version: store.dsh.version ?? ''}))
       // 校验通过，进入首页
-      router.replace(store.currentProfile ? `/profile/${store.currentProfile}` : '/settings')
+      router.replace('/profile')
     } else {
-      MessageUtil.error(t('banner.invalid', { error: store.dsh.error ?? '' }))
+      MessageUtil.error(t('banner.invalid', {error: store.dsh.error ?? ''}))
     }
   } finally {
     verifying.value = false

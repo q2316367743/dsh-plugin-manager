@@ -1,13 +1,12 @@
 import type { ThemeMode } from '@/types/dsh'
 import { LocalNameEnum } from '@/global/LocalNameEnum'
-import { useDbStorage } from './DbStorage'
 
 /**
  * 颜色模式：亮 / 暗 / 跟随系统，持久化到 KV 存储。
  * 通过 document.documentElement 的 theme-mode 属性切换 tdesign 暗色。
  */
 export function useColorMode() {
-  const mode = useDbStorage<ThemeMode>(LocalNameEnum.KEY_APP_THEME_MODE, 'system')
+  const mode = useLocalStorage<ThemeMode>(LocalNameEnum.KEY_APP_THEME_MODE, 'system')
   const isDark = ref(false)
 
   function apply() {

@@ -1,7 +1,7 @@
 <template>
   <div class="profile-page">
     <div v-if="store.hasWebApp" class="server-wrap">
-      <ServerCard />
+      <ServerCard/>
     </div>
 
     <header class="page-header">
@@ -10,15 +10,32 @@
           :value="store.currentProfile"
           :options="profileOptions"
           class="profile-select"
-          @change="onProfileChange"
-        />
+        >
+          <template #panelBottomContent>
+            <div class="p-8px" style="border-top: 1px solid var(--td-border-level-1-color)">
+              <t-button
+                variant="text"
+                block
+                :loading="refreshing"
+                @click="refreshProfiles"
+              >
+                <template #icon>
+                  <refresh-icon/>
+                </template>
+                {{ t('list.refresh') }}
+              </t-button>
+            </div>
+          </template>
+        </t-select>
         <t-input
           v-model="store.filter"
           :placeholder="t('list.searchPlaceholder')"
           clearable
           class="search-input"
         >
-          <template #prefix-icon><search-icon /></template>
+          <template #prefix-icon>
+            <search-icon/>
+          </template>
         </t-input>
       </div>
       <div class="page-header-right">
@@ -27,14 +44,16 @@
           :disabled="!store.dshOk || store.cliBusy"
           @click="openInstall"
         >
-          <template #icon><add-icon /></template>
+          <template #icon>
+            <add-icon/>
+          </template>
           {{ t('toolbar.install') }}
         </t-button>
       </div>
     </header>
 
     <div class="page-body">
-      <t-skeleton v-if="store.loading" :rows="5" class="skeleton" />
+      <t-skeleton v-if="store.loading" :rows="5" class="skeleton"/>
 
       <template v-else>
         <PluginGroup
@@ -57,7 +76,7 @@
             </t-switch>
           </template>
         </PluginGroup>
-        <t-empty v-if="!store.detail?.items.length" :description="t('list.empty')" class="empty" />
+        <t-empty v-if="!store.detail?.items.length" :description="t('list.empty')" class="empty"/>
         <t-empty
           v-else-if="!filteredOfficial.length && !filteredThird.length"
           :description="t('list.noMatch')"
@@ -68,27 +87,25 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { useRoute, useRouter } from 'vue-router'
-import { AddIcon, SearchIcon } from 'tdesign-icons-vue-next'
+import {AddIcon, RefreshIcon, SearchIcon} from 'tdesign-icons-vue-next'
 import ServerCard from './components/ServerCard.vue'
 import PluginGroup from './components/PluginGroup.vue'
-import { useDshStore } from '@/store/dsh'
-import { useI18n } from '@/i18n'
+import {useDshStore} from '@/store/dsh'
+import {useI18n} from '@/i18n'
 import MessageUtil from '@/utils/modal/MessageUtil'
 import MessageBoxUtil from '@/utils/modal/MessageBoxUtil'
-import { openInstallPlugin } from './modals/InstallPlugin'
-import { openUpdatePlugin } from './modals/UpdatePlugin'
-import { openPluginConfig } from './modals/PluginConfig'
-import { promptRestart } from './restart'
-import { nativeApi } from '@/api/native'
-import type { BundleItem } from '@/types/dsh'
+import {openInstallPlugin} from './modals/InstallPlugin'
+import {openUpdatePlugin} from './modals/UpdatePlugin'
+import {openPluginConfig} from './modals/PluginConfig'
+import {promptRestart} from './restart'
+import {nativeApi} from '@/api/native'
+import type {BundleItem} from '@/types/dsh'
 
 const store = useDshStore()
-const { t } = useI18n()
-const router = useRouter()
+const {t} = useI18n()
 
 const profileOptions = computed(() =>
-  store.profiles.map((name) => ({ label: name, value: name }))
+  store.profiles.map((name) => ({label: name, value: name}))
 )
 
 const filteredOfficial = computed(() => filterItems(store.officialBundles))
@@ -104,17 +121,25 @@ function filterItems(list: BundleItem[]): BundleItem[] {
   )
 }
 
-function onProfileChange(value: unknown) {
-  const name = String(value ?? '')
-  if (name && name !== store.currentProfile) {
-    router.replace(`/profile/${name}`)
+const refreshing = ref(false)
+
+/** 重新获取 profile 列表（新建 profile 后无需重启即可在下拉中看到） */
+async function refreshProfiles() {
+  if (refreshing.value) return
+  refreshing.value = true
+  try {
+    await store.refreshProfiles()
+    MessageUtil.success(t('list.refreshDone'))
+  } catch {
+    MessageUtil.error(t('list.refreshFailed'))
+  } finally {
+    refreshing.value = false
   }
 }
 
-
 // ---- 工具栏 ----
 function openInstall() {
-  openInstallPlugin({ profile: store.currentProfile })
+  openInstallPlugin({profile: store.currentProfile})
 }
 
 async function onPureMode(on: boolean | string | number) {
@@ -137,10 +162,10 @@ async function onToggle(item: BundleItem, enabled: boolean) {
 function onAction(item: BundleItem, value: string) {
   switch (value) {
     case 'config':
-      openPluginConfig({ profile: store.currentProfile, bundle: item })
+      openPluginConfig({profile: store.currentProfile, bundle: item})
       break
     case 'update':
-      openUpdatePlugin({ profile: store.currentProfile, item })
+      openUpdatePlugin({profile: store.currentProfile, item})
       break
     case 'homepage':
       openHomepage(item)
@@ -158,18 +183,18 @@ function openHomepage(item: BundleItem) {
 
 async function doRemove(item: BundleItem) {
   try {
-    await MessageBoxUtil.confirm(t('plugin.removeConfirm', { name: item.name }), t('plugin.remove'))
+    await MessageBoxUtil.confirm(t('plugin.removeConfirm', {name: item.name}), t('plugin.remove'))
   } catch {
     return
   }
   let tail = ''
-  MessageUtil.info(t('plugin.removing', { name: item.name }))
+  MessageUtil.info(t('plugin.removing', {name: item.name}))
   const ok = await store.removeBundle(item, (chunk) => (tail += chunk))
   if (ok) {
-    MessageUtil.success(t('plugin.removed', { name: item.name }))
+    MessageUtil.success(t('plugin.removed', {name: item.name}))
     promptRestart('removed', item.name)
   } else {
-    MessageUtil.error(t('plugin.removeFailed', { error: tail.slice(-300) }))
+    MessageUtil.error(t('plugin.removeFailed', {error: tail.slice(-300)}))
   }
 }
 </script>
@@ -200,6 +225,7 @@ async function doRemove(item: BundleItem) {
 
       .profile-select {
         width: 200px;
+
       }
 
       .search-input {

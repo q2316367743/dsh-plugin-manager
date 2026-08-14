@@ -30,7 +30,7 @@ function ensureRoute() {
     return
   }
   if (dshReady && (path === '/setup' || path === '/' || path === '/home')) {
-    router.replace(store.currentProfile ? `/profile/${store.currentProfile}` : '/settings')
+    router.replace('/profile')
   }
 }
 

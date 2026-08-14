@@ -115,7 +115,7 @@ func initUpdater(app *application.App) {
 
 func main() {
 	app := application.New(application.Options{
-		Name:        "DSH Plugin Manager",
+		Name:        "dsh 助手",
 		Description: "按 profile 管理 dsh 插件的启停 / 安装 / 排序 / 纯净模式 / web 服务",
 		Services: []application.Service{
 			application.NewService(services.NewDshService()),
@@ -135,7 +135,7 @@ func main() {
 	initUpdater(app)
 
 	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "DSH Plugin Manager",
+		Title:  "dsh 助手",
 		Width:  1100,
 		Height: 760,
 		URL:    "/",

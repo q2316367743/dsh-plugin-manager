@@ -101,6 +101,19 @@ export const useDshStore = defineStore('dsh', {
       await this.refreshServerStatus()
     },
 
+    /** 重新拉取 profile 列表；当前 profile 已不存在时切到第一个，列表为空则清空。 */
+    async refreshProfiles() {
+      this.profiles = await dshApi.listProfiles()
+      if (this.profiles.length === 0) {
+        this.currentProfile = ''
+        this.detail = null
+        return
+      }
+      if (!this.profiles.includes(this.currentProfile)) {
+        await this.selectProfile(this.profiles[0])
+      }
+    },
+
     /** 从 KV 加载设置（dsh 路径 / 端口 / 重启询问） */
     async loadSettings() {
       const saved = await KeyValueUtil.getItem<Partial<AppSettings>>(LocalNameEnum.KEY_DSH_SETTINGS)

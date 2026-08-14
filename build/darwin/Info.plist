@@ -13,7 +13,7 @@
 		<key>CFBundleIdentifier</key>
 		<string>com.dsh.pluginmanager</string>
 		<key>CFBundleName</key>
-		<string>DSH Plugin Manager</string>
+		<string>dsh 助手</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

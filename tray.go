@@ -84,6 +84,6 @@ func setupTray(app *application.App, win *application.WebviewWindow) {
 
 	tray := app.SystemTray.New()
 	tray.SetIcon(trayIcon)
-	tray.SetTooltip("DSH Plugin Manager")
+	tray.SetTooltip("dsh 助手")
 	tray.SetMenu(menu)
 }

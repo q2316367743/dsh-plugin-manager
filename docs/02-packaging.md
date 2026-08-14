@@ -123,7 +123,7 @@ mv bin/dsh-plugin-manager-arm64.app.tmp bin/dsh-plugin-manager.app
 
 ```
 mkdir -p /tmp/release && cp bin/dsh-plugin-manager-{darwin-arm64,darwin-amd64,windows-amd64}.zip /tmp/release/
-wails3 updater manifest -version 1.0.0 -name "DSH Plugin Manager" \
+wails3 updater manifest -version 1.0.0 -name "dsh 助手" \
   -key updater.key -url-prefix "1.0.0/" -output bin/update.json /tmp/release
 wails3 updater verify -manifest bin/update.json -publickey updater.key.pub -dir /tmp/release
 # 期望输出：每个产物 digest ok, signature ok
@@ -182,3 +182,11 @@ wails3 tool sign --input bin/dsh-plugin-manager-amd64.app \
    exe，更新器交换目标即 exe）。
 6. 跨平台编译依赖：`services/proc.go` 的 Unix 系统调用已拆分为 `proc_unix.go`（`!windows`）/ `proc_windows.go`（`windows`
    ）——新增平台相关代码时注意保持两个文件签名一致。
+7. **应用显示名与 id 分离**：显示名统一为「dsh 助手」（`build/config.yml` 的 `productName`、`main.go` 的 `Name`/窗口 `Title`、
+   `tray.go` 托盘 tooltip、`build/windows/info.json` 的 `ProductName`、`build/darwin/Info*.plist` 的 `CFBundleName`、
+   `build/linux/desktop` 的 `Name`），id / 产物一律保持 `dsh-plugin-manager`（`CFBundleIdentifier=com.dsh.pluginmanager`、
+   exe 名 / .app 名 / 安装包名 / `updateManifestURL`）。**Windows 安装目录固定为 id**：`project.nsi` 显式
+   `!define INFO_PRODUCTNAME "dsh 助手"`（快捷方式 / 安装器窗口 / 注册表 DisplayName）+ `!define INFO_PROJECTNAME "dsh-plugin-manager"`，
+   `InstallDir` 用 `${INFO_PROJECTNAME}`（`$PROGRAMFILES64\dsh-plugin-manager` 或 `%LOCALAPPDATA%\Programs\dsh-plugin-manager`），
+   避免显示名变更连带改安装目录。改 `build/config.yml` 的 `info` 后重跑 `wails3 task common:update:build-assets` 时，
+   `project.nsi` 中的显式 define 不会被覆盖（该文件不做模板替换）。

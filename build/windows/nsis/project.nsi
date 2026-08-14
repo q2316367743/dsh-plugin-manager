@@ -33,6 +33,12 @@ Unicode true
 ####
 ## Include the wails tools
 ####
+## 应用显示名与 id 固定解耦：
+## INFO_PRODUCTNAME "dsh 助手" —— 快捷方式名 / 安装器窗口名 / 注册表 DisplayName；
+## INFO_PROJECTNAME "dsh-plugin-manager" —— 安装目录 / exe 名 / 安装包文件名（id，不随显示名联动）。
+## 显式定义以覆盖 wails_tools.nsh 的默认值（避免 productName 变更影响安装目录）。
+!define INFO_PRODUCTNAME "dsh 助手"
+!define INFO_PROJECTNAME "dsh-plugin-manager"
 !include "wails_tools.nsh"
 
 # The version information for this two must consist of 4 parts
@@ -74,9 +80,9 @@ ManifestDPIAware true
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
 !if "${WAILS_INSTALL_SCOPE}" == "user"
-    InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
+    InstallDir "$LOCALAPPDATA\Programs\${INFO_PROJECTNAME}"
 !else
-    InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
+    InstallDir "$PROGRAMFILES64\${INFO_PROJECTNAME}"
 !endif
 ShowInstDetails show # This will always show the installation details.
 
