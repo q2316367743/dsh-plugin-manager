@@ -56,18 +56,12 @@ export const en: Record<I18nKey, string> = {
   'toolbar.pure': 'Pure mode',
   'toolbar.pureOn': 'Pure mode on: only @deepseek-ai/ official plugins remain',
   'toolbar.pureOff': 'Pure mode off: all third-party plugins restored',
-  'toolbar.checkUpdates': 'Check updates',
-  'toolbar.checking': 'Checking…',
-  'toolbar.noUpdates': 'All plugins up to date',
-  'toolbar.updatesFound': '{count} update(s) available',
 
   // plugin card
   'plugin.config': 'Configure',
   'plugin.remove': 'Uninstall',
   'plugin.openHomepage': 'Open homepage',
   'plugin.update': 'Update',
-  'plugin.updateTo': 'Update to {version}',
-  'plugin.hasUpdate': 'Update available',
   'plugin.source.npm': 'npm',
   'plugin.source.github': 'GitHub',
   'plugin.source.local': 'local',
@@ -77,11 +71,19 @@ export const en: Record<I18nKey, string> = {
   'plugin.removing': 'Uninstalling {name}…',
   'plugin.removed': 'Uninstalled {name}',
   'plugin.removeFailed': 'Uninstall failed: {error}',
-  'plugin.updating': 'Updating {name}…',
-  'plugin.updated': 'Updated {name}',
-  'plugin.updateFailed': 'Update failed: {error}',
   'plugin.disabledTip': 'Disabled (cordis.patch.yml)',
   'plugin.enabledTip': 'Enabled',
+
+  // update
+  'update.title': 'Update plugin',
+  'update.update': 'Update',
+  'update.cancelUpdate': 'Cancel update',
+  'update.consolePlaceholder': 'Update output will show here',
+  'update.spawnFailed': 'Failed to start dsh — configure the dsh path in settings first',
+  'update.killed': 'Update cancelled',
+  'update.failed': 'Update failed (exit code {code})',
+  'update.restartAsk':
+    'Plugin updated. It takes effect after restarting the dsh web server. Restart now?',
 
   // restart prompt
   'restart.title': 'Restart web server',

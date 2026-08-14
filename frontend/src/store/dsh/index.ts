@@ -146,9 +146,7 @@ export const useDshStore = defineStore('dsh', {
         official: isOfficial(bundleName),
         source: detectSource(bundleName, dependencySpec, homepage, repository),
         rows,
-        enabled,
-        hasUpdate: false,
-        checking: false
+        enabled
       }
     },
 
@@ -264,41 +262,6 @@ export const useDshStore = defineStore('dsh', {
       )
       if (code === 0) await this.loadProfile(this.currentProfile)
       return code === 0
-    },
-
-    async updateBundle(bundle: BundleItem, onOutput: (chunk: string) => void): Promise<boolean> {
-      const code = await this.runCli(
-        ['plugin', '--profile', this.currentProfile, 'add', `${bundle.name}@latest`],
-        onOutput
-      )
-      if (code === 0) await this.loadProfile(this.currentProfile)
-      return code === 0
-    },
-
-    // ---- 检查更新 ----
-    async checkUpdates(): Promise<number> {
-      if (!this.detail) return 0
-      let updated = 0
-      for (const item of this.detail.items) {
-        item.checking = true
-        try {
-          if (item.source !== 'npm') {
-            item.hasUpdate = false
-            continue
-          }
-          const latest = await dshApi.fetchLatestVersion(item.name)
-          if (latest && latest !== item.version) {
-            item.latest = latest
-            item.hasUpdate = true
-            updated++
-          } else {
-            item.hasUpdate = false
-          }
-        } finally {
-          item.checking = false
-        }
-      }
-      return updated
     },
 
     // ---- web 服务（启停 / 状态实现见 ./server）----

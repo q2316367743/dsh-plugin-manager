@@ -53,18 +53,12 @@ export const zh = {
   'toolbar.pure': '纯净模式',
   'toolbar.pureOn': '纯净模式已开启：仅保留 @deepseek-ai/ 官方插件',
   'toolbar.pureOff': '已关闭纯净模式，恢复所有第三方插件',
-  'toolbar.checkUpdates': '检查更新',
-  'toolbar.checking': '检查中…',
-  'toolbar.noUpdates': '所有插件已是最新',
-  'toolbar.updatesFound': '发现 {count} 个可更新插件',
 
   // 插件卡片
   'plugin.config': '配置',
   'plugin.remove': '卸载',
   'plugin.openHomepage': '打开主页',
   'plugin.update': '更新',
-  'plugin.updateTo': '更新到 {version}',
-  'plugin.hasUpdate': '可更新',
   'plugin.source.npm': 'npm',
   'plugin.source.github': 'GitHub',
   'plugin.source.local': '本地',
@@ -73,11 +67,18 @@ export const zh = {
   'plugin.removing': '正在卸载 {name}…',
   'plugin.removed': '已卸载 {name}',
   'plugin.removeFailed': '卸载失败：{error}',
-  'plugin.updating': '正在更新 {name}…',
-  'plugin.updated': '已更新 {name}',
-  'plugin.updateFailed': '更新失败：{error}',
   'plugin.disabledTip': '已禁用（cordis.patch.yml）',
   'plugin.enabledTip': '已启用',
+
+  // 更新
+  'update.title': '更新插件',
+  'update.update': '更新',
+  'update.cancelUpdate': '取消更新',
+  'update.consolePlaceholder': '更新输出将显示在这里',
+  'update.spawnFailed': '无法启动 dsh，请先在设置中配置 dsh 路径',
+  'update.killed': '已取消更新',
+  'update.failed': '更新失败（退出码 {code}）',
+  'update.restartAsk': '插件已更新，重启 dsh web 服务后生效，是否立即重启？',
 
   // 重启提示
   'restart.title': '重启 web 服务',

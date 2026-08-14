@@ -34,10 +34,6 @@ export interface BundleItem {
   rows: BundleRowRef[]
   /** 合并 patch 后的启用状态 */
   enabled: boolean
-  /** 检查更新结果 */
-  latest?: string
-  hasUpdate: boolean
-  checking: boolean
 }
 
 /** profile 详情：原始 bundles + patch + 合并视图 */
@@ -106,24 +102,6 @@ export interface AppSettings {
   port: number
   /** 启用/禁用/卸载插件后询问是否立即重启 web 服务 */
   confirmRestart: boolean
-}
-
-export interface NpmSearchHit {
-  name: string
-  version: string
-  description: string
-  author?: string
-  homepage?: string
-  keywords?: string[]
-}
-
-export interface GithubSearchHit {
-  fullName: string
-  name: string
-  description: string
-  htmlUrl: string
-  stargazers: number
-  updatedAt: string
 }
 
 export interface SpawnHandlers {

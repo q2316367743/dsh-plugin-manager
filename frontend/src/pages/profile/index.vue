@@ -30,15 +30,6 @@
           <template #icon><add-icon /></template>
           {{ t('toolbar.install') }}
         </t-button>
-        <t-button
-          variant="outline"
-          :disabled="!store.dshOk || store.cliBusy || checking"
-          :loading="checking"
-          @click="onCheckUpdates"
-        >
-          <template #icon><refresh-icon /></template>
-          {{ t('toolbar.checkUpdates') }}
-        </t-button>
       </div>
     </header>
 
@@ -78,7 +69,7 @@
 </template>
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router'
-import { AddIcon, RefreshIcon, SearchIcon } from 'tdesign-icons-vue-next'
+import { AddIcon, SearchIcon } from 'tdesign-icons-vue-next'
 import ServerCard from './components/ServerCard.vue'
 import PluginGroup from './components/PluginGroup.vue'
 import { useDshStore } from '@/store/dsh'
@@ -86,6 +77,7 @@ import { useI18n } from '@/i18n'
 import MessageUtil from '@/utils/modal/MessageUtil'
 import MessageBoxUtil from '@/utils/modal/MessageBoxUtil'
 import { openInstallPlugin } from './modals/InstallPlugin'
+import { openUpdatePlugin } from './modals/UpdatePlugin'
 import { openPluginConfig } from './modals/PluginConfig'
 import { promptRestart } from './restart'
 import { nativeApi } from '@/api/native'
@@ -95,8 +87,6 @@ const store = useDshStore()
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-
-const checking = ref(false)
 
 const profileOptions = computed(() =>
   store.profiles.map((name) => ({ label: name, value: name }))
@@ -143,20 +133,6 @@ function openInstall() {
   openInstallPlugin({ profile: store.currentProfile })
 }
 
-async function onCheckUpdates() {
-  checking.value = true
-  try {
-    const count = await store.checkUpdates()
-    if (count > 0) {
-      MessageUtil.success(t('toolbar.updatesFound', { count }))
-    } else {
-      MessageUtil.info(t('toolbar.noUpdates'))
-    }
-  } finally {
-    checking.value = false
-  }
-}
-
 async function onPureMode(on: boolean | string | number) {
   const enabled = !!on
   await store.setPureMode(enabled)
@@ -180,7 +156,7 @@ function onAction(item: BundleItem, value: string) {
       openPluginConfig({ profile: store.currentProfile, bundle: item })
       break
     case 'update':
-      doUpdate(item)
+      openUpdatePlugin({ profile: store.currentProfile, item })
       break
     case 'homepage':
       openHomepage(item)
@@ -211,14 +187,6 @@ async function doRemove(item: BundleItem) {
   } else {
     MessageUtil.error(t('plugin.removeFailed', { error: tail.slice(-300) }))
   }
-}
-
-async function doUpdate(item: BundleItem) {
-  let tail = ''
-  MessageUtil.info(t('plugin.updating', { name: item.name }))
-  const ok = await store.updateBundle(item, (chunk) => (tail += chunk))
-  if (ok) MessageUtil.success(t('plugin.updated', { name: item.name }))
-  else MessageUtil.error(t('plugin.updateFailed', { error: tail.slice(-300) }))
 }
 </script>
 <style scoped lang="less">

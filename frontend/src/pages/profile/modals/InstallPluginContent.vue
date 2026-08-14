@@ -1,34 +1,40 @@
 <template>
   <div class="install">
-    <!-- 输入 + 安装按钮 -->
+    <!-- 输入（安装）或 目标插件（更新）+ 主按钮 -->
     <div class="input-row">
       <t-input
+        v-if="mode === 'install'"
         v-model="spec"
         :placeholder="t('install.placeholder')"
-        :disabled="installing"
+        :disabled="running"
         clearable
-        @enter="onInstall"
+        @enter="onRun"
       >
         <template #prefix-icon><install-icon /></template>
       </t-input>
+      <div v-else class="update-target">
+        <install-icon />
+        <span class="update-name">{{ item?.name }}</span>
+        <t-tag v-if="item?.version" size="small" variant="outline">v{{ item.version }}</t-tag>
+      </div>
       <t-button
-        :theme="installing ? 'danger' : 'primary'"
-        :disabled="!installing && !spec.trim()"
-        @click="onInstall"
+        :theme="running ? 'danger' : 'primary'"
+        :disabled="!running && !canRun"
+        @click="onRun"
       >
-        {{ installing ? t('install.cancelInstall') : t('install.install') }}
+        {{ running ? t(task.cancelKey) : t(task.nameKey) }}
       </t-button>
     </div>
 
     <!-- 控制台输出 -->
     <div class="console">
       <pre v-if="logs" class="log-area"><span v-html="consoleHtml" /></pre>
-      <span v-else class="console-hint">{{ t('install.consolePlaceholder') }}</span>
+      <span v-else class="console-hint">{{ t(task.consoleHintKey) }}</span>
     </div>
 
     <!-- 底部：取消 -->
     <div class="drawer-footer">
-      <t-button variant="outline" :disabled="installing" @click="emit('close')">
+      <t-button variant="outline" :disabled="running" @click="emit('close')">
         {{ t('install.cancel') }}
       </t-button>
     </div>
@@ -40,50 +46,86 @@ import { InstallIcon } from 'tdesign-icons-vue-next'
 import { dshApi } from '@/api/dsh'
 import { useDshStore } from '@/store/dsh'
 import { useI18n } from '@/i18n'
+import type { I18nKey } from '@/i18n'
 import { ansiToHtml } from '@/utils/ansi'
 import MessageUtil from '@/utils/modal/MessageUtil'
 import MessageBoxUtil from '@/utils/modal/MessageBoxUtil'
+import type { BundleItem } from '@/types/dsh'
 
-const props = defineProps<{ profile: string }>()
+const props = defineProps<{
+  profile: string
+  mode?: 'install' | 'update'
+  item?: BundleItem
+}>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
 const store = useDshStore()
 const { t } = useI18n()
 
+const mode = computed(() => props.mode ?? 'install')
 const spec = ref('')
-const installing = ref(false)
+const running = ref(false)
 const logs = ref('')
 const currentPid = ref(0)
 /** 用户主动取消（区别于进程自然失败退出） */
 const cancelled = ref(false)
 
+/** 按模式聚合任务文案 key */
+const task = computed(() =>
+  mode.value === 'install'
+    ? {
+        nameKey: 'install.install' as I18nKey,
+        cancelKey: 'install.cancelInstall' as I18nKey,
+        consoleHintKey: 'install.consolePlaceholder' as I18nKey,
+        spawnFailedKey: 'install.spawnFailed' as I18nKey,
+        killedKey: 'install.killed' as I18nKey,
+        failedKey: 'install.failed' as I18nKey,
+        restartAskKey: 'install.restartAsk' as I18nKey
+      }
+    : {
+        nameKey: 'update.update' as I18nKey,
+        cancelKey: 'update.cancelUpdate' as I18nKey,
+        consoleHintKey: 'update.consolePlaceholder' as I18nKey,
+        spawnFailedKey: 'update.spawnFailed' as I18nKey,
+        killedKey: 'update.killed' as I18nKey,
+        failedKey: 'update.failed' as I18nKey,
+        restartAskKey: 'update.restartAsk' as I18nKey
+      }
+)
+
 const consoleHtml = computed(() => ansiToHtml(logs.value))
 
-async function onInstall() {
-  if (installing.value) {
-    await cancelInstall()
+const canRun = computed(() => (mode.value === 'install' ? !!spec.value.trim() : true))
+
+async function onRun() {
+  if (running.value) {
+    await cancelRun()
     return
   }
-  const name = spec.value.trim()
-  if (!name) return
+  const target = mode.value === 'install' ? spec.value.trim() : props.item?.name ?? ''
+  if (!target) return
   const runner = store.dshCommand()
   if (!runner) {
-    logs.value = t('install.spawnFailed') + '\n'
+    logs.value = t(task.value.spawnFailedKey) + '\n'
     return
   }
-  installing.value = true
+  running.value = true
   cancelled.value = false
   logs.value = ''
   const jobId = `install-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const args =
+    mode.value === 'install'
+      ? ['plugin', '--profile', props.profile, 'add', target]
+      : ['plugin', '--profile', props.profile, 'update', target]
   const { pid, exit } = await dshApi.runCliInterruptible(
     jobId,
     runner.command,
-    [...runner.prefix, 'plugin', '--profile', props.profile, 'add', name],
+    [...runner.prefix, ...args],
     (_stream, text) => (logs.value += text)
   )
   if (pid <= 0) {
-    installing.value = false
-    logs.value += t('install.spawnFailed') + '\n'
+    running.value = false
+    logs.value += t(task.value.spawnFailedKey) + '\n'
     return
   }
   currentPid.value = pid
@@ -93,9 +135,9 @@ async function onInstall() {
   }
   const code = await exit
   currentPid.value = 0
-  installing.value = false
+  running.value = false
   if (cancelled.value) {
-    logs.value += t('install.killed') + '\n'
+    logs.value += t(task.value.killedKey) + '\n'
     return
   }
   if (code === 0) {
@@ -103,18 +145,18 @@ async function onInstall() {
     await maybeRestartWeb()
     emit('close')
   } else {
-    logs.value += t('install.failed', { code }) + '\n'
+    logs.value += t(task.value.failedKey, { code }) + '\n'
   }
 }
 
-async function cancelInstall() {
+async function cancelRun() {
   cancelled.value = true
   if (currentPid.value > 0) {
     await dshApi.kill(currentPid.value)
   }
 }
 
-/** web profile 安装成功后，若 web 服务在运行则询问是否重启 */
+/** web profile 安装 / 更新成功后，若 web 服务在运行则询问是否重启 */
 async function maybeRestartWeb() {
   if (props.profile !== 'web') return
   const status = store.server.status
@@ -124,7 +166,7 @@ async function maybeRestartWeb() {
     return
   }
   try {
-    await MessageBoxUtil.confirm(t('install.restartAsk'), t('restart.title'), {
+    await MessageBoxUtil.confirm(t(task.value.restartAskKey), t('restart.title'), {
       confirmButtonText: t('restart.now'),
       cancelButtonText: t('restart.later')
     })
@@ -136,7 +178,7 @@ async function maybeRestartWeb() {
   MessageUtil.success(t('restart.done'))
 }
 
-// drawer destroyOnClose 销毁组件时兜底杀掉未结束的安装进程
+// drawer destroyOnClose 销毁组件时兜底杀掉未结束的进程
 onBeforeUnmount(() => {
   if (currentPid.value > 0) {
     void dshApi.kill(currentPid.value)
@@ -151,11 +193,34 @@ onBeforeUnmount(() => {
 
   .input-row {
     display: flex;
+    align-items: center;
     gap: 8px;
 
     :deep(.t-input) {
       flex: 1;
       min-width: 0;
+    }
+
+    .update-target {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      height: 40px;
+      border-radius: var(--td-radius-default);
+      background-color: var(--td-bg-color-component);
+
+      .update-name {
+        flex: 1;
+        min-width: 0;
+        font-weight: 600;
+        color: var(--td-text-color-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   }
 

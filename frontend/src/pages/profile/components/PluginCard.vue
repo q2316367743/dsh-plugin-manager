@@ -7,9 +7,6 @@
           {{ item.official ? t('list.official') : t('list.thirdParty') }}
         </t-tag>
         <t-tag v-if="!item.official" size="small" variant="outline">{{ sourceLabel }}</t-tag>
-        <t-tag v-if="item.hasUpdate" size="small" theme="warning" variant="light">
-          {{ t('plugin.hasUpdate') }}
-        </t-tag>
         <span class="plugin-version">v{{ item.version }}</span>
       </div>
       <div class="plugin-desc">{{ item.description }}</div>
@@ -65,11 +62,9 @@ const rowsLabel = computed(() => props.item.rows.map((row) => row.id).join(' · 
 
 const menuOptions = computed(() => {
   const options: Array<{ content: string; value: string }> = [
-    { content: t('plugin.config'), value: 'config' }
+    { content: t('plugin.config'), value: 'config' },
+    { content: t('plugin.update'), value: 'update' }
   ]
-  if (props.item.hasUpdate && props.item.latest) {
-    options.push({ content: t('plugin.updateTo', { version: props.item.latest }), value: 'update' })
-  }
   const url = props.item.homepage || props.item.repository
   if (url) options.push({ content: t('plugin.openHomepage'), value: 'homepage' })
   if (!props.item.official) options.push({ content: t('plugin.remove'), value: 'remove' })

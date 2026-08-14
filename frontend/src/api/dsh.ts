@@ -1,16 +1,13 @@
 /**
  * dsh 插件管理器 API 层：封装 Wails 服务绑定与浏览器原生能力（RL-03），
  * 组件 / store 一律经本模块访问，禁止直接触碰绑定。
- * 网络请求（npm / GitHub）直接走浏览器 fetch（Wails 本地 asset server 无 CORS 限制）。
  */
 import { Events } from '@wailsio/runtime'
 import { DshService, ProcService } from '../../bindings/dsh-plugin-manager/services'
 import type {
   AppSettings,
   DshResolveResult,
-  GithubSearchHit,
   InstalledPackage,
-  NpmSearchHit,
   ProfileManifest
 } from '@/types/dsh'
 import {
@@ -33,40 +30,6 @@ interface ProcOutputPayload {
 interface ProcExitPayload {
   jobId: string
   code: number
-}
-
-/** HTTP JSON 请求：超时、跟随重定向、JSON 解析（npm registry / GitHub API）。 */
-async function httpJson(
-  url: string,
-  options: {
-    method?: string
-    headers?: Record<string, string>
-    body?: unknown
-    timeout?: number
-  } = {}
-): Promise<unknown> {
-  const { method = 'GET', headers = {}, body, timeout = 15000 } = options
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeout)
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: { 'User-Agent': 'dsh-plugin-manager/1.0.0', Accept: 'application/json', ...headers },
-      body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
-      signal: controller.signal
-    })
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 500)}`)
-    }
-    return await res.json()
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') {
-      throw new Error(`request timeout after ${timeout}ms`)
-    }
-    throw e
-  } finally {
-    clearTimeout(timer)
-  }
 }
 
 export const dshApi = {
@@ -184,74 +147,6 @@ export const dshApi = {
   kill: (pid: number): Promise<boolean> => ProcService.Kill(pid),
   isAlive: (pid: number): Promise<boolean> => ProcService.IsAlive(pid),
   findPidByPort: (port: number): Promise<number | null> => ProcService.FindPidByPort(port),
-
-  // ---- 网络（npm / github）----
-  async searchNpm(query: string, size = 30): Promise<NpmSearchHit[]> {
-    const url = `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(
-      query
-    )}&size=${size}`
-    const res = (await httpJson(url)) as {
-      objects: Array<{
-        package: {
-          name: string
-          version: string
-          description: string
-          author?: string | { name?: string }
-          homepage?: string
-          keywords?: string[]
-          links?: { homepage?: string }
-        }
-      }>
-    }
-    return (res.objects || []).map(({ package: pkg }) => ({
-      name: pkg.name,
-      version: pkg.version,
-      description: pkg.description,
-      author:
-        typeof pkg.author === 'string' ? pkg.author : pkg.author?.name,
-      homepage: pkg.links?.homepage ?? pkg.homepage,
-      keywords: pkg.keywords
-    }))
-  },
-
-  async fetchLatestVersion(packageName: string): Promise<string | null> {
-    try {
-      const encoded = encodeURIComponent(packageName).replace(/%2F/g, '/')
-      const res = (await httpJson(`https://registry.npmjs.org/${encoded}/latest`)) as {
-        version?: string
-      }
-      return res.version ?? null
-    } catch {
-      return null
-    }
-  },
-
-  async searchGithub(query: string, topicOnly = false): Promise<GithubSearchHit[]> {
-    const q = topicOnly ? 'topic:dsh-plugin' : `topic:dsh-plugin ${query}`
-    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(
-      q
-    )}&sort=updated&per_page=30`
-    const res = (await httpJson(url, {
-      headers: { Accept: 'application/vnd.github+json' }
-    })) as {
-      items: Array<{
-        full_name: string
-        name: string
-        description: string | null
-        html_url: string
-        stargazers_count: number
-        updated_at: string
-      }>
-    }
-    return (res.items || []).map((item) => ({
-      fullName: item.full_name,
-      name: item.name,
-      description: item.description ?? '',
-      htmlUrl: item.html_url,
-      stargazers: item.stargazers_count,
-      updatedAt: item.updated_at
-    }))
-  },
 
   // ---- patch 操作 ----
   parsePatchEntries,
