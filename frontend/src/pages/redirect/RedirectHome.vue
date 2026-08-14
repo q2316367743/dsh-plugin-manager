@@ -13,7 +13,7 @@ onMounted(() => {
   if (store.dsh.state !== 'ok') {
     router.replace('/setup')
   } else {
-    router.replace(store.currentProfile ? `/profile/${store.currentProfile}` : '/settings')
+    router.replace('/profile')
   }
 })
 </script>

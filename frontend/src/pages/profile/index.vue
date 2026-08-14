@@ -112,21 +112,6 @@ function onProfileChange(value: unknown) {
   }
 }
 
-watch(
-  () => route.params.name,
-  (name) => {
-    if (typeof name === 'string' && name !== store.currentProfile) {
-      store.selectProfile(name)
-    }
-  }
-)
-
-onMounted(async () => {
-  const name = route.params.name
-  if (typeof name === 'string' && name !== store.currentProfile) {
-    await store.selectProfile(name)
-  }
-})
 
 // ---- 工具栏 ----
 function openInstall() {

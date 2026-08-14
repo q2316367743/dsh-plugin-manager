@@ -13,7 +13,7 @@ export const routes: Array<RouteRecordRaw> = [
   },
   {
     name: '平台',
-    path: '/profile/:name',
+    path: '/profile',
     component: () => import('@/pages/profile/index.vue')
   },
   {
