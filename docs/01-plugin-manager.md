@@ -37,7 +37,7 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 | 服务 | 方法 | 说明 |
 |---|---|---|
 | `DshService` | `GetDshHome / ListProfiles / ReadProfileManifest / WriteProfileManifest / ReadProfilePatch / WriteProfilePatch / ReadBundlePatch / ReadInstalledPackage / ResolveDshBin / ResolveDsh` | dsh 生态文件访问；`ResolveDsh` 探测运行方式（直接执行 → bun 兜底）返回 `{state, command, prefix, version}` |
-| `ProcService` | `RunCli(jobId, cmd, args, detached) / Kill / IsAlive / FindPidByPort` | 流式子进程；输出经事件 `proc:output`、退出经 `proc:exit` 推送（按 jobId 分发）；`Kill` 为 SIGTERM → 3s → SIGKILL；`FindPidByPort` 走 lsof（win32 返回 null） |
+| `ProcService` | `RunCli(jobId, cmd, args, detached) / Kill / IsAlive / FindPidByPort` | 流式子进程；输出经事件 `proc:output`、退出经 `proc:exit` 推送（按 jobId 分发）；`Kill` 为 SIGTERM → 3s → SIGKILL（Windows 为 TerminateProcess，平台差异在 `proc_unix.go` / `proc_windows.go` 按构建标签拆分）；`FindPidByPort` 走 lsof（win32 返回 null） |
 | `KVService` | `GetItem / SetItem / RemoveItem` | 替代原 dbStorage：内存 map + 持久化到 `os.UserConfigDir()/dsh-plugin-manager/kv.json`（原子写） |
 | `BrowserService` | `OpenInBuiltin(url, width, height)` | 内置浏览器：运行中 `application.Get().Window.NewWithOptions(WebviewWindowOptions{URL: url})` 动态建窗加载外部 URL（Wails v3 JS runtime 无建窗 API，只能在 Go 侧做）；窗口单例复用，已存在则按需 `SetURL` + `Focus`，`events.Common.WindowClosing` 时清引用 |
 

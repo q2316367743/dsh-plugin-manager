@@ -25,7 +25,7 @@ export function IsAlive(pid: number): $CancellablePromise<boolean> {
 }
 
 /**
- * * 杀进程：SIGTERM 后等待退出，3s 内未退出则 SIGKILL 兜底。
+ * * 杀进程：温和终止（SIGTERM / TerminateProcess）后等待退出，3s 内未退出则强杀兜底。
  */
 export function Kill(pid: number): $CancellablePromise<boolean> {
     return $Call.ByID(3541774748, pid);

@@ -11,7 +11,7 @@ info:
   description: "dsh 插件管理器 —— 按 profile 管理 dsh 插件的启停 / 安装 / 排序 / 纯净模式 / web 服务" # The application description
   copyright: "" # Copyright text
   comments: "" # Comments
-  version: "0.1.0" # The application version
+  version: "1.0.0" # The application version
 
 # Dev mode configuration
 dev_mode:

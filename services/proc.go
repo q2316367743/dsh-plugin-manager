@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -133,8 +132,8 @@ func pump(r io.Reader, jobId, stream string, emit func(string, string, string)) 
 func (s *ProcService) RunCli(jobId string, cmd string, args []string, detached bool) int {
 	c := exec.Command(cmd, args...)
 	c.Env = userEnv(nil)
-	if detached && runtime.GOOS != "windows" {
-		c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if detached {
+		c.SysProcAttr = detachedSysProcAttr()
 	}
 	stdout, err := c.StdoutPipe()
 	if err != nil {
@@ -171,12 +170,12 @@ func (s *ProcService) RunCli(jobId string, cmd string, args []string, detached b
 	return c.Process.Pid
 }
 
-/** 杀进程：SIGTERM 后等待退出，3s 内未退出则 SIGKILL 兜底。 */
+/** 杀进程：温和终止（SIGTERM / TerminateProcess）后等待退出，3s 内未退出则强杀兜底。 */
 func (s *ProcService) Kill(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+	if !requestTerminate(pid) {
 		return false
 	}
 	deadline := time.Now().Add(3 * time.Second)
@@ -185,7 +184,7 @@ func (s *ProcService) Kill(pid int) bool {
 			return true
 		}
 		if time.Now().After(deadline) {
-			_ = syscall.Kill(pid, syscall.SIGKILL)
+			forceKill(pid)
 			return true
 		}
 		time.Sleep(200 * time.Millisecond)
@@ -197,8 +196,7 @@ func (s *ProcService) IsAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	err := syscall.Kill(pid, 0)
-	return err == nil || err == syscall.EPERM
+	return procAlive(pid)
 }
 
 /** 通过 lsof（darwin/linux）找到监听某端口的 PID；win32 不支持返回 nil。 */

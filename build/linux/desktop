@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=A dsh-plugin-manager application
+Name=DSH Plugin Manager
+Comment=dsh 插件管理器 —— 按 profile 管理 dsh 插件的启停 / 安装 / 排序 / 纯净模式 / web 服务
 # The Exec line includes %u to pass the URL to the application
 Exec=/usr/local/bin/dsh-plugin-manager %u
 Terminal=false

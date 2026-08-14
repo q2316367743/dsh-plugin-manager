@@ -1,14 +1,14 @@
 {
 	"fixed": {
-		"file_version": "0.1.0"
+		"file_version": "1.0.0"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "0.1.0",
+			"ProductVersion": "1.0.0",
 			"CompanyName": "My Company",
-			"FileDescription": "A dsh-plugin-manager application",
-			"LegalCopyright": "© 2026, My Company",
-			"ProductName": "My Product",
+			"FileDescription": "dsh 插件管理器 —— 按 profile 管理 dsh 插件的启停 / 安装 / 排序 / 纯净模式 / web 服务",
+			"LegalCopyright": "© now, My Company",
+			"ProductName": "DSH Plugin Manager",
 			"Comments": "This is a comment"
 		}
 	}
