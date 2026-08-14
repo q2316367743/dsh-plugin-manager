@@ -1,0 +1,73 @@
+/**
+ * 系统托盘（macOS 菜单栏）功能：显示/隐藏主窗口、启动/停止 dsh web 服务、退出。
+ * 托盘与菜单在 Go 侧构建；"启动/停止服务"经事件路由到前端复用 Pinia store 的启停逻辑，
+ * 前端通过 "tray:service-status" 回推状态，Go 据此切换菜单项标签与禁用态。
+ * "退出"同样先经事件请前端停服务，前端确认（tray:quit-ready）后再真正退出，
+ * 前端无响应时由 3 秒兜底定时器强制退出。
+ */
+package main
+
+import (
+	_ "embed" // 供 //go:embed 托盘图标使用
+	"sync"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
+
+	"dsh-plugin-manager/services"
+)
+
+//go:embed build/appicon.png
+var trayIcon []byte
+
+// setupTray 创建系统托盘并绑定菜单与事件；在 app.Run() 前调用。
+// win 需保持存活（不要 Close/Destroy），"显示/隐藏"与"关闭到托盘"都依赖它。
+func setupTray(app *application.App, win *application.WebviewWindow) {
+	// 关闭到托盘：钩子在默认销毁监听之前执行，Cancel 阻止窗口销毁，仅隐藏。
+	// 程序化 Close()/退出走 Common.WindowClosing 直发，不受此钩子影响。
+	win.RegisterHook(events.Mac.WindowShouldClose, func(e *application.WindowEvent) {
+		e.Cancel()
+		win.Hide()
+	})
+
+	// 退出流程（只退一次）：请求前端停服务，前端确认或 3 秒超时后真正退出
+	var quitOnce sync.Once
+	quit := func() { quitOnce.Do(app.Quit) }
+	app.Event.On("tray:quit-ready", func(*application.CustomEvent) { quit() })
+
+	menu := application.NewMenu()
+	menu.Add("显示/隐藏").OnClick(func(*application.Context) {
+		if win.IsVisible() {
+			win.Hide()
+		} else {
+			win.Show().Focus()
+		}
+	})
+	// 启动/停止服务：标签随前端回推的状态切换，无 web 应用时置灰
+	serviceItem := menu.Add("启动服务").OnClick(func(*application.Context) {
+		app.Event.Emit("tray:toggle-service")
+	})
+	app.Event.On("tray:service-status", func(event *application.CustomEvent) {
+		status, ok := event.Data.(services.TrayServiceStatus)
+		if !ok {
+			return
+		}
+		if status.Running {
+			serviceItem.SetLabel("停止服务")
+		} else {
+			serviceItem.SetLabel("启动服务")
+		}
+		serviceItem.SetEnabled(status.Supported)
+	})
+	menu.AddSeparator()
+	menu.Add("退出").OnClick(func(*application.Context) {
+		app.Event.Emit("tray:quit-request")
+		time.AfterFunc(3*time.Second, quit)
+	})
+
+	tray := app.SystemTray.New()
+	tray.SetIcon(trayIcon)
+	tray.SetTooltip("DSH Plugin Manager")
+	tray.SetMenu(menu)
+}

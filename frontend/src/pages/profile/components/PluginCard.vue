@@ -1,20 +1,24 @@
 <template>
   <div class="plugin-card">
-    <drag-move-icon class="drag-handle" />
     <div class="plugin-info">
       <div class="plugin-title">
         <span class="plugin-name">{{ item.name }}</span>
         <t-tag size="small" :theme="item.official ? 'primary' : 'default'" variant="light">
           {{ item.official ? t('list.official') : t('list.thirdParty') }}
         </t-tag>
-        <t-tag size="small" variant="outline">{{ sourceLabel }}</t-tag>
+        <t-tag v-if="!item.official" size="small" variant="outline">{{ sourceLabel }}</t-tag>
         <t-tag v-if="item.hasUpdate" size="small" theme="warning" variant="light">
           {{ t('plugin.hasUpdate') }}
         </t-tag>
         <span class="plugin-version">v{{ item.version }}</span>
       </div>
       <div class="plugin-desc">{{ item.description }}</div>
-      <div class="plugin-rows">{{ rowsLabel }}</div>
+      <div class="plugin-rows">
+        <t-tooltip v-if="item.official && rowsLabel" :content="rowsLabel" placement="top">
+          <span class="plugin-rows--truncate">{{ rowsLabel }}</span>
+        </t-tooltip>
+        <template v-else>{{ rowsLabel }}</template>
+      </div>
     </div>
     <div class="plugin-actions">
       <t-switch
@@ -32,7 +36,7 @@
 </template>
 <script lang="ts" setup>
 import type { DropdownOption } from 'tdesign-vue-next'
-import { DragMoveIcon, MoreIcon } from 'tdesign-icons-vue-next'
+import { MoreIcon } from 'tdesign-icons-vue-next'
 import type { BundleItem } from '@/types/dsh'
 import { useI18n } from '@/i18n'
 
@@ -87,12 +91,6 @@ function onMenu(data: DropdownOption) {
   gap: 12px;
   padding: 10px 12px;
 
-  .drag-handle {
-    flex-shrink: 0;
-    color: var(--td-text-color-placeholder);
-    cursor: move;
-  }
-
   .plugin-info {
     flex: 1;
     min-width: 0;
@@ -127,6 +125,13 @@ function onMenu(data: DropdownOption) {
       margin-top: 2px;
       font-size: 11px;
       color: var(--td-text-color-placeholder);
+
+      .plugin-rows--truncate {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   }
 

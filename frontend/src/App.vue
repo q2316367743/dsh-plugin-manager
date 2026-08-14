@@ -6,10 +6,14 @@
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router'
 import { useDshStore } from '@/store/dsh'
+import { useTray } from '@/hooks'
 
 const route = useRoute()
 const router = useRouter()
 const store = useDshStore()
+
+// 系统托盘桥接：回推服务状态、响应托盘启停与退出操作
+useTray()
 
 /**
  * 统一入口路由：
@@ -43,5 +47,6 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
+  background-color: var(--td-bg-color-container);
 }
 </style>

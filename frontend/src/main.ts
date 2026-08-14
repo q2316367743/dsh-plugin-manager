@@ -3,6 +3,7 @@ import { createPinia } from 'pinia';
 import App from './App.vue'
 import {router} from './plugin/router';
 import { useDshStore } from '@/store/dsh';
+import { useColorMode } from '@/hooks';
 
 import 'virtual:uno.css'
 import '@/assets/style/global.less';
@@ -12,6 +13,8 @@ import '@/assets/style/global.less';
  * 保证首次渲染前路由重定向（/setup 或首页）的依据已就绪。
  */
 async function bootstrap() {
+  // 挂载前应用持久化的颜色模式（亮 / 暗 / 跟随系统），保证首屏即跟随系统外观
+  useColorMode()
   const app = createApp(App)
   app.use(createPinia())
   const store = useDshStore()

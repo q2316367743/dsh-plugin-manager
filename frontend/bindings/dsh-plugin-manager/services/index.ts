@@ -15,5 +15,6 @@ export {
 export type {
     DshResolveResult,
     ProcExit,
-    ProcOutput
+    ProcOutput,
+    TrayServiceStatus
 } from "./models.js";

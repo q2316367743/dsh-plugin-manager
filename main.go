@@ -22,6 +22,11 @@ func init() {
 	// 注册进程事件，绑定生成器会为前端生成强类型的事件订阅 API。
 	application.RegisterEvent[services.ProcOutput]("proc:output")
 	application.RegisterEvent[services.ProcExit]("proc:exit")
+	// 注册托盘事件：启停请求（Go→前端）、服务状态回推（前端→Go）、退出握手（Go→前端 / 前端→Go）。
+	application.RegisterEvent[application.Void]("tray:toggle-service")
+	application.RegisterEvent[services.TrayServiceStatus]("tray:service-status")
+	application.RegisterEvent[application.Void]("tray:quit-request")
+	application.RegisterEvent[application.Void]("tray:quit-ready")
 }
 
 func main() {
@@ -38,16 +43,18 @@ func main() {
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
+			// 关闭主窗口不退出应用，转由托盘"显示/隐藏"找回（关闭到托盘）
+			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
 
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
+	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  "DSH Plugin Manager",
 		Width:  1100,
 		Height: 760,
 		URL:    "/",
 	})
+	setupTray(app, win)
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)

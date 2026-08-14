@@ -6,6 +6,7 @@
           v-model="npmQuery"
           :placeholder="t('install.npmPlaceholder')"
           clearable
+          class="mt-8px"
         >
           <template #prefix-icon><search-icon /></template>
         </t-input>
@@ -15,12 +16,13 @@
           v-model="githubQuery"
           :placeholder="t('install.githubPlaceholder')"
           clearable
+          class="mt-8px"
         >
           <template #prefix-icon><search-icon /></template>
         </t-input>
       </t-tab-panel>
       <t-tab-panel value="direct" :label="t('install.tabDirect')">
-        <div class="direct-row">
+        <div class="direct-row mt-8px">
           <t-input
             v-model="directSpec"
             :placeholder="t('install.directPlaceholder')"

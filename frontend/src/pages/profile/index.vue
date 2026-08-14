@@ -70,7 +70,6 @@
           :items="filteredOfficial"
           @toggle="onToggle"
           @action="onAction"
-          @move="(range) => onMove('official', range)"
         />
         <PluginGroup
           v-if="filteredThird.length"
@@ -78,7 +77,6 @@
           :items="filteredThird"
           @toggle="onToggle"
           @action="onAction"
-          @move="(range) => onMove('third', range)"
         />
         <t-empty v-if="!store.detail?.items.length" :description="t('list.empty')" class="empty" />
         <t-empty
@@ -189,8 +187,14 @@ async function onExport() {
 }
 
 async function onPureMode(on: boolean | string | number) {
-  await store.setPureMode(!!on)
-  MessageUtil.success(!!on ? t('toolbar.pureOn') : t('toolbar.pureOff'))
+  const enabled = !!on
+  await store.setPureMode(enabled)
+  if (store.server.status === 'stopped' || store.server.status === 'unknown') {
+    // 服务未运行：无需重启，直接反馈状态
+    MessageUtil.success(enabled ? t('toolbar.pureOn') : t('toolbar.pureOff'))
+    return
+  }
+  await promptRestart(enabled ? 'pure-on' : 'pure-off')
 }
 
 // ---- 插件卡片操作 ----
@@ -238,11 +242,13 @@ async function doRemove(item: BundleItem) {
   }
 }
 
+type RestartAction = 'enabled' | 'disabled' | 'removed' | 'pure-on' | 'pure-off'
+
 /**
- * 启用 / 禁用 / 卸载后，若 web 服务在运行则询问是否立即重启。
+ * 启用 / 禁用 / 卸载 / 切换纯净模式后，若 web 服务在运行则询问是否立即重启。
  * 设置中关闭「不再提示」后静默跳过；外部启动的服务提示手动重启。
  */
-async function promptRestart(action: 'enabled' | 'disabled' | 'removed', name: string) {
+async function promptRestart(action: RestartAction, name?: string) {
   const status = store.server.status
   if (status === 'stopped' || status === 'unknown') return
   if (!store.settings.confirmRestart) return
@@ -250,16 +256,21 @@ async function promptRestart(action: 'enabled' | 'disabled' | 'removed', name: s
     MessageUtil.info(t('restart.foreign'))
     return
   }
-  const actionKey: Record<'enabled' | 'disabled' | 'removed', I18nKey> = {
+  const actionKey: Record<RestartAction, I18nKey> = {
     enabled: 'restart.actionEnabled',
     disabled: 'restart.actionDisabled',
-    removed: 'restart.actionRemoved'
+    removed: 'restart.actionRemoved',
+    'pure-on': 'restart.actionPureOn',
+    'pure-off': 'restart.actionPureOff'
   }
   const actionText = actionKey[action]
+  const isPure = action === 'pure-on' || action === 'pure-off'
   let restart = false
   try {
     await MessageBoxUtil.confirm(
-      t('restart.confirm', { action: t(actionText), name }),
+      isPure
+        ? t('restart.confirmPure', { action: t(actionText) })
+        : t('restart.confirm', { action: t(actionText), name: name ?? '' }),
       t('restart.title'),
       {
         confirmButtonText: t('restart.now'),
@@ -285,20 +296,6 @@ async function doUpdate(item: BundleItem) {
   const ok = await store.updateBundle(item, (chunk) => (tail += chunk))
   if (ok) MessageUtil.success(t('plugin.updated', { name: item.name }))
   else MessageUtil.error(t('plugin.updateFailed', { error: tail.slice(-300) }))
-}
-
-// ---- 拖拽排序 ----
-function onMove(kind: 'official' | 'third', range: { from: number; to: number }) {
-  if (!store.detail) return
-  const list = kind === 'official' ? store.officialBundles : store.thirdPartyBundles
-  const fullItems = store.detail.items
-  const fromItem = list[range.from]
-  const toItem = list[range.to]
-  const fromIndex = fullItems.indexOf(fromItem)
-  const toIndex = fullItems.indexOf(toItem)
-  if (fromIndex >= 0 && toIndex >= 0) {
-    store.moveBundle(fromIndex, toIndex)
-  }
 }
 </script>
 <style scoped lang="less">

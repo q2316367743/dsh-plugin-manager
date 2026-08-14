@@ -1,6 +1,6 @@
 # 01 · DSH 插件管理器
 
-Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管理 dsh（DeepSeek Harness）的插件：启用 / 禁用、安装 / 移除、拖拽排序、纯净模式、启动 dsh web 服务、编辑插件 config、导出 / 导入 profile 视图、检查更新。
+Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管理 dsh（DeepSeek Harness）的插件：启用 / 禁用、安装 / 移除、纯净模式、启动 dsh web 服务、编辑插件 config、导出 / 导入 profile 视图、检查更新。
 
 技术栈：Go（后端服务绑定）+ Vue 3 / TDesign / Vite（前端，位于 `frontend/`），Wails v3 提供原生能力（对话框 / 剪贴板 / 打开外链 / 事件系统）。本应用为纯桌面形态，**与 utools 无任何关系**。
 
@@ -18,11 +18,13 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 ```
 /（仓库根）
 ├── main.go                  # Wails 入口：embed frontend/dist + 注册 4 个服务 + 窗口
+├── tray.go                  # 系统托盘：显示/隐藏 / 启动停止服务 / 退出（含关闭到托盘钩子）
 ├── services/
 │   ├── dsh.go               # DshService：DSH_HOME / profile / patch / 可执行文件探测
 │   ├── proc.go              # ProcService：流式子进程（事件推送）/ kill / isAlive / lsof
 │   ├── file.go              # FileService：通用文件读写
-│   └── kv.go                # KVService：应用级键值存储（JSON 文件）
+│   ├── kv.go                # KVService：应用级键值存储（JSON 文件）
+│   └── tray.go              # TrayServiceStatus 事件负载类型（托盘状态契约）
 ├── config.yml               # Wails 项目配置（产品名 / 版本 / dev 模式）
 ├── Taskfile.yml             # 构建任务（wails3 驱动，pnpm 管理前端）
 └── frontend/
@@ -46,8 +48,10 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 | `utils/dsh/patch.ts` | cordis.patch.yml 解析 / 增删改 / 序列化（`yaml` 库 Document 级操作，保证注释与 `!!js` 表达式往返保真） |
 | `utils/native/KeyValueUtil.ts` | KV 访问（async），设置 / 服务 PID / 主题 / 语言持久化 |
 | `hooks/DbStorage.ts` | 持久化 ref：内存态即时响应、异步落库（替代原 `UtoolsDbStorage`） |
-| `store/dsh/index.ts` | 全局 store：profiles / bundles / patch / dsh 解析 / 服务 / 设置 / CLI 执行；`attachServerLog` 经 `proc:output` 事件按 `serverJobId` 累积 web 服务日志（logTail） |
-| `pages/profile/index.vue` | 首页：header（profile 切换 + 设置入口 + 搜索）、服务卡片、工具栏、官方 / 第三方分组、拖拽排序 |
+| `store/dsh/index.ts` | 全局 store：profiles / bundles / patch / dsh 解析 / 设置 / CLI 执行；web 服务启停经薄包装转发 `store/dsh/server.ts` |
+| `store/dsh/server.ts` | dsh web 服务启停与状态（从主 store 拆分，控制行数）：`refreshServerStatus`（PID + lsof 判定）**保留 busy**、`serverStart/serverStop`（busy 互斥）、`restartServer` **全程持有 busy**（stop→start 无间隙，重启期间按钮持续禁用）、日志监听 `attachServerLog` |
+| `hooks/UseTray.ts` | 系统托盘桥接：watch `server.status` + `hasWebApp` 回推 `tray:service-status`；响应 `tray:toggle-service`（按状态调 serverStart/Stop）、`tray:quit-request`（先停服务再回 `tray:quit-ready`） |
+| `pages/profile/index.vue` | 首页：header（profile 切换 + 设置入口 + 搜索）、服务卡片、工具栏、官方 / 第三方分组 |
 | `pages/setup/index.vue` | 全屏引导页：dsh 缺失时的安装命令 / 手动路径 / 文件选择 / 校验 |
 | `pages/redirect/RedirectHome.vue` | `/` 兜底重定向（dsh 未就绪 → `/setup`，否则 → 当前 profile 首页） |
 | `pages/settings/index.vue` | 设置页（`SubPageLayout` 返回）：dsh 路径 / 端口 / 主题 / 语言 |
@@ -56,12 +60,16 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 | `hooks/ColorMode.ts` | 亮 / 暗 / 跟随系统（`theme-mode` 属性切换 tdesign 暗色） |
 | `types/dsh.ts` | 领域类型：ProfileDetail / BundleItem / PatchEntry / ServerState 等 |
 
-## 三、事件协议（Go → 前端）
+## 三、事件协议（Go ⇄ 前端）
 
-| 事件 | 负载（`services` 包结构） | 用途 |
-|---|---|---|
-| `proc:output` | `ProcOutput { jobId, stream: "stdout"\|"stderr", text }` | CLI / web 服务流式输出 |
-| `proc:exit` | `ProcExit { jobId, code }` | 进程退出（仅非 detached；web 服务长驻不触发） |
+| 事件 | 方向 | 负载（`services` 包结构） | 用途 |
+|---|---|---|---|
+| `proc:output` | Go → 前端 | `ProcOutput { jobId, stream: "stdout"\|"stderr", text }` | CLI / web 服务流式输出 |
+| `proc:exit` | Go → 前端 | `ProcExit { jobId, code }` | 进程退出（仅非 detached；web 服务长驻不触发） |
+| `tray:toggle-service` | Go → 前端 | 无 | 托盘"启动/停止服务"点击；前端按当前状态调 `serverStart` / `serverStop` |
+| `tray:service-status` | 前端 → Go | `TrayServiceStatus { running, supported }` | 服务状态回推；Go 切换菜单标签（启动服务/停止服务）与禁用态（supported=false 置灰） |
+| `tray:quit-request` | Go → 前端 | 无 | 托盘"退出"点击；请求前端先停服务 |
+| `tray:quit-ready` | 前端 → Go | 无 | 前端停服务完成；Go 收到后真正退出（3 秒超时兜底强制退出） |
 
 约定：前端先 `Events.On` 注册监听、再调用 `ProcService.RunCli`（Go 侧收到调用后才 spawn，时序安全）；`jobId` 由前端生成（`cli-<ts>-<rand>` / `server-<ts>`）隔离并发。
 
@@ -98,10 +106,12 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 3. **行 id ≠ 包名**：启用 / 禁用按行 id；解析不到 insert 时回退为包名（对单行注册的插件通常恰好相等）。
 4. **官方插件（`@deepseek-ai/`）**：不可禁用 / 移除；纯净模式只操作第三方。
 5. **纯净模式关闭**：删除所有第三方 bundle 的 `disabled` 键（会一并恢复手动禁用的第三方插件，UI 有文案提示）；仅剩 `id` 的空覆盖行会整体移除，带 `config` 的行只删 `disabled` 保留 config。patch 写入统一为 block 风格（`- id: x` 缩进格式）。
-6. **插件变更后的重启提示**：启用 / 禁用 / 卸载第三方插件后，若 web 服务在运行（running-own）则询问「是否立即重启」（`restartServer` = stop + start）；服务未运行则不打扰；外部启动（running-foreign）提示手动重启；设置项 `confirmRestart`（默认 true）可关闭该询问。
-7. **dsh plugin add 的 reconcile**：只会向 bundles 追加新包，不会打乱拖拽排序；`update` 通过 `dsh plugin add <pkg>@latest` 实现。
+6. **插件变更后的重启提示**：启用 / 禁用 / 卸载第三方插件、切换纯净模式（开启 / 关闭）后，若 web 服务在运行（running-own）则询问「是否立即重启」（`restartServer` = stop + start）；服务未运行（stopped / unknown）则不打扰（纯净模式此时直接提示状态已变更）；外部启动（running-foreign）提示手动重启；设置项 `confirmRestart`（默认 true）可关闭该询问。纯净模式为批量操作，确认文案走无插件名的 `restart.confirmPure` 模板（`profile/index.vue` 的 `promptRestart` 按 action `'pure-on' | 'pure-off'` 区分）。
+7. **dsh plugin add 的 reconcile**：只会向 bundles 追加新包；`update` 通过 `dsh plugin add <pkg>@latest` 实现。
 8. **端口探测不做运行判定**（代理劫持会误报），以 PID 存活 + lsof 监听者为准；`FindPidByPort` 在 win32 返回 null（外部启动的服务在 win32 上显示 stopped，可接受）。
 9. **git 源 bundle**（如 `github:omdsh-dev/dsh-at-file`）：检查更新跳过（无 registry 版本）；安装时若 pnpm 阻止构建脚本，dsh 会提示在 `pnpm-workspace.yaml` 的 allowBuilds 放行，UI 透传其 stderr。
-10. **导航结构**：无侧边栏布局。`main.ts` bootstrap 先 `await store.init()` 再挂载；App.vue 依据 dsh 状态统一路由——未就绪 → `/setup` 全屏引导页，就绪 → 当前 profile 首页（`/profile/:name`）；首页 header 右侧按钮进入 `/settings`（SubPageLayout 返回）；`/` 由 RedirectHome 兜底重定向。路由为 hash 模式。
+10. **导航结构**：无侧边栏布局。`main.ts` bootstrap 先 `useColorMode()` 应用持久化主题（亮/暗/跟随系统，挂载前设置 `theme-mode` 属性避免首屏白闪）、再 `await store.init()`、后挂载；App.vue 依据 dsh 状态统一路由——未就绪 → `/setup` 全屏引导页，就绪 → 当前 profile 首页（`/profile/:name`）；首页 header 右侧按钮进入 `/settings`（SubPageLayout 返回）；`/` 由 RedirectHome 兜底重定向。路由为 hash 模式。注意：`useColorMode()` 必须在 bootstrap 调用（设置页的实例只在打开设置页时生效，启动时未调用会导致首屏永远亮色）。
 11. **搜索过滤**：首页 header 的 profile 切换下拉右侧提供搜索输入框（`store.filter`），按插件名称 / 描述实时过滤列表；无匹配时显示空态提示。
 12. **构建与验证**：`pnpm check`（vue-tsc typecheck，RL-07）+ `wails3 build`（产物 `bin/dsh-plugin-manager`）；开发模式 `wails3 dev`（vite 热更新 + Go 热重载）。改动 Go 服务后需重跑 `wails3 generate bindings` 刷新前端绑定。
+13. **系统托盘（菜单栏）**：托盘在 Go 侧构建（根目录 `tray.go`），左键点图标原生弹出菜单（不绑定 AttachWindow/OnClick）；"显示/隐藏"纯原生（`win.Hide` / `win.Show().Focus()`）；"启动/停止服务"经事件路由到前端复用 store 启停逻辑（Go 侧不重复实现），标签由前端回推的 `tray:service-status` 动态切换；"退出"发 `tray:quit-request`，前端 `serverStop()` 后回 `tray:quit-ready`，3 秒超时兜底。**关闭到托盘**：`win.RegisterHook(events.Mac.WindowShouldClose)` 中 `Cancel()` + `Hide()`（钩子在默认销毁监听前执行，窗口不销毁；程序化 `Close()` 走 `Common.WindowClosing` 直发，不受钩子影响）；`Mac.ApplicationShouldTerminateAfterLastWindowClosed=false`。托盘图标为 `build/appicon.png`（彩色，可后续换 `SetTemplateIcon` 模板图精修）。
+14. **dev 模式的 `/wails/custom.js` 404**：Wails v3 开发模式（runtime.debug.js）启动时会探测 `/wails/custom.js`（server 模式专用的 WebSocket 事件脚本），桌面模式下 Wails 故意返回 404 让 `loadOptionalScript` 跳过——DevTools console 里的 `Failed to load resource: 404 (wails://.../wails/custom.js)` 是预期无害噪音，事件走原生 IPC 不受影响；生产构建（runtime.prod.js）无此请求。

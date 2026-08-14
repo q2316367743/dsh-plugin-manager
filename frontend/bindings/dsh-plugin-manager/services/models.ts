@@ -33,3 +33,13 @@ export interface ProcOutput {
     "stream": string;
     "text": string;
 }
+
+/**
+ * TrayServiceStatus 托盘"启动/停止服务"菜单项状态，经事件 "tray:service-status" 由前端推送给 Go。
+ * Running 表示当前 profile 的 web 服务是否在运行（本管理器启动或外部启动均可）；
+ * Supported 表示当前 profile 是否包含 dsh web 应用，不含时菜单项置灰。
+ */
+export interface TrayServiceStatus {
+    "running": boolean;
+    "supported": boolean;
+}

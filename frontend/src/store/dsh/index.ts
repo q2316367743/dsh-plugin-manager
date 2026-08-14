@@ -2,11 +2,18 @@
  * DSH 插件管理器全局 store：profile / bundle / patch / dsh 解析 / web 服务 / 设置。
  */
 import { defineStore } from 'pinia'
-import { Events } from '@wailsio/runtime'
 import { dshApi } from '@/api/dsh'
 import { nativeApi } from '@/api/native'
 import { KeyValueUtil } from '@/utils/native'
 import { LocalNameEnum } from '@/global/LocalNameEnum'
+import {
+  attachServerLog,
+  openServer,
+  refreshServerStatus,
+  restartServer,
+  startServer,
+  stopServer
+} from './server'
 import type {
   AppSettings,
   BundleItem,
@@ -23,10 +30,6 @@ const PATCH_HEADER = `# dsh profile patch layer — managed by DSH Plugin Manage
 # Managed by DSH Plugin Manager; manual edits are respected but rewritten on save.`
 
 const defaultSettings: AppSettings = { dshPath: '', port: 3080, confirmRestart: true }
-
-function serverKey(profile: string): string {
-  return `${LocalNameEnum.KEY_DSH_SERVER}/${profile}`
-}
 
 function isOfficial(name: string): boolean {
   return name.startsWith('@deepseek-ai/')
@@ -46,16 +49,6 @@ function detectSource(
   if (homepage?.includes('github.com')) return 'github'
   return 'npm'
 }
-
-/** web 服务进程输出事件负载（对应 Go 侧 services.ProcOutput） */
-interface ProcOutputPayload {
-  jobId: string
-  stream: string
-  text: string
-}
-
-/** 是否已挂载 web 服务日志监听（仅挂载一次） */
-let serverLogAttached = false
 
 export const useDshStore = defineStore('dsh', {
   state: () => ({
@@ -85,16 +78,9 @@ export const useDshStore = defineStore('dsh', {
   },
 
   actions: {
-    /** 挂载 web 服务日志监听（proc:output 事件，按 serverJobId 匹配累积 logTail） */
+    /** 挂载 web 服务日志监听（实现见 ./server） */
     attachServerLog() {
-      if (serverLogAttached) return
-      serverLogAttached = true
-      Events.On('proc:output', (ev: { data: ProcOutputPayload }) => {
-        const payload = ev.data
-        if (this.serverJobId && payload.jobId === this.serverJobId) {
-          this.server.logTail = (this.server.logTail + payload.text).slice(-6000)
-        }
-      })
+      attachServerLog(this)
     },
 
     /** 启动初始化：加载设置、列 profile、解析 dsh、加载第一个 profile */
@@ -201,7 +187,7 @@ export const useDshStore = defineStore('dsh', {
       void KeyValueUtil.setItem(LocalNameEnum.KEY_DSH_SETTINGS, { ...this.settings })
     },
 
-    // ---- 启用 / 禁用 / 排序 ----
+    // ---- 启用 / 禁用 ----
     async toggleBundle(bundle: BundleItem, enabled: boolean) {
       if (!this.detail) return
       const rowIds = bundle.rows.map((row) => row.id)
@@ -211,18 +197,6 @@ export const useDshStore = defineStore('dsh', {
         !enabled
       )
       await dshApi.writeProfilePatch(this.currentProfile, patchText)
-      await this.loadProfile(this.currentProfile)
-    },
-
-    async moveBundle(from: number, to: number) {
-      if (!this.detail) return
-      const bundles = [...this.detail.bundles]
-      const [item] = bundles.splice(from, 1)
-      bundles.splice(to, 0, item)
-      const manifest = await dshApi.readProfileManifest(this.currentProfile)
-      if (!manifest) return
-      manifest.dsh = { ...manifest.dsh, profile: { ...manifest.dsh?.profile, bundles } }
-      await dshApi.writeProfileManifest(this.currentProfile, manifest)
       await this.loadProfile(this.currentProfile)
     },
 
@@ -343,120 +317,26 @@ export const useDshStore = defineStore('dsh', {
       return updated
     },
 
-    // ---- web 服务 ----
-    /**
-     * 刷新服务状态。判定依据：
-     * 1. 记录在案的启动 PID 仍存活 → 本管理器启动；
-     * 2. 否则查端口监听者（lsof）→ 外部启动；
-     * 3. 均无 → 未启动。
-     * 不依赖 TCP 探测，避免系统代理劫持端口导致误报。
-     */
+    // ---- web 服务（启停 / 状态实现见 ./server）----
     async refreshServerStatus() {
-      const port = this.settings.port
-      const saved = await KeyValueUtil.getItem<{ pid?: number; port?: number }>(
-        serverKey(this.currentProfile)
-      )
-      const recordedPid = saved?.pid
-      if (recordedPid && (await dshApi.isAlive(recordedPid))) {
-        this.server = {
-          status: 'running-own',
-          port,
-          pid: recordedPid,
-          logTail: this.server.logTail,
-          busy: false
-        }
-        return
-      }
-      const listeningPid = await dshApi.findPidByPort(port)
-      if (listeningPid) {
-        this.server = {
-          status: 'running-foreign',
-          port,
-          pid: listeningPid,
-          logTail: this.server.logTail,
-          busy: false
-        }
-        return
-      }
-      this.server = {
-        status: 'stopped',
-        port,
-        pid: undefined,
-        logTail: this.server.logTail,
-        busy: false
-      }
+      return refreshServerStatus(this)
     },
 
     async serverStart() {
-      // 互斥：busy 置位是同步的，重入直接忽略，防止重复点击重复启动
-      if (this.server.busy) return
-      const runner = this.dshCommand()
-      if (!runner) return
-      this.server.busy = true
-      try {
-        const port = this.settings.port
-        // 已在运行则直接刷新状态
-        await this.refreshServerStatus()
-        if (this.server.status !== 'stopped') return
-        // detached 启动 web 服务，日志经事件 proc:output 累积到 logTail
-        const jobId = `server-${Date.now()}`
-        this.serverJobId = jobId
-        const pid = await dshApi.spawnStream(
-          jobId,
-          runner.command,
-          [...runner.prefix, '--profile', this.currentProfile, '--port', String(port)],
-          true
-        )
-        if (pid > 0) {
-          await KeyValueUtil.setItem(serverKey(this.currentProfile), { pid, port })
-        }
-        // 等待端口监听就绪后刷新状态
-        const deadline = Date.now() + 15000
-        while (Date.now() < deadline) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          await this.refreshServerStatus()
-          if (this.server.status !== 'stopped') break
-          // 进程已退出且未监听端口 → 启动失败，提前结束
-          if (pid > 0 && !(await dshApi.isAlive(pid))) break
-        }
-      } finally {
-        this.server.busy = false
-      }
+      return startServer(this)
     },
 
     async serverStop() {
-      // 互斥：与启动共用 busy 标志，防止操作期间重入
-      if (this.server.busy) return
-      this.server.busy = true
-      try {
-        const saved = await KeyValueUtil.getItem<{ pid?: number }>(serverKey(this.currentProfile))
-        const recordedPid = saved?.pid ?? this.server.pid
-        // 先杀记录的进程，再清残留监听者（dsh 可能 fork 子进程占端口）
-        if (recordedPid && (await dshApi.isAlive(recordedPid))) {
-          await dshApi.kill(recordedPid)
-        }
-        const listener = await dshApi.findPidByPort(this.settings.port)
-        if (listener && listener !== recordedPid) {
-          await dshApi.kill(listener)
-        }
-        await KeyValueUtil.removeItem(serverKey(this.currentProfile))
-        this.serverJobId = ''
-        await this.refreshServerStatus()
-      } finally {
-        this.server.busy = false
-      }
+      return stopServer(this)
     },
 
     serverOpen() {
-      void nativeApi.shell.openExternal(`http://127.0.0.1:${this.settings.port}`)
+      openServer(this)
     },
 
     /** 重启 web 服务（仅对本管理器启动的服务生效），返回是否已重启 */
     async restartServer(): Promise<boolean> {
-      if (this.server.status !== 'running-own') return false
-      await this.serverStop()
-      await this.serverStart()
-      return true
+      return restartServer(this)
     },
 
     // ---- 导出 / 导入 ----

@@ -86,7 +86,10 @@ export const zh = {
   'restart.actionEnabled': '启用',
   'restart.actionDisabled': '禁用',
   'restart.actionRemoved': '卸载',
+  'restart.actionPureOn': '开启纯净模式',
+  'restart.actionPureOff': '关闭纯净模式',
   'restart.confirm': '已{action}插件 {name}，改动需重启 dsh web 服务后生效，是否立即重启？',
+  'restart.confirmPure': '已{action}，改动需重启 dsh web 服务后生效，是否立即重启？',
   'restart.now': '立即重启',
   'restart.later': '稍后',
   'restart.foreign': '服务由外部启动，请手动重启 dsh web 以生效',
@@ -145,7 +148,7 @@ export const zh = {
   'settings.themeSystem': '跟随系统',
   'settings.language': '语言',
   'settings.confirmRestart': '插件变更后询问是否重启服务',
-  'settings.confirmRestartHint': '启用 / 禁用 / 卸载插件后，若 web 服务在运行则询问是否立即重启'
+  'settings.confirmRestartHint': '启用 / 禁用 / 卸载插件或切换纯净模式后，若 web 服务在运行则询问是否立即重启'
 }
 
 export type I18nKey = keyof typeof zh

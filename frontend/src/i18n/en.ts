@@ -90,8 +90,12 @@ export const en: Record<I18nKey, string> = {
   'restart.actionEnabled': 'Enabled',
   'restart.actionDisabled': 'Disabled',
   'restart.actionRemoved': 'Uninstalled',
+  'restart.actionPureOn': 'Pure mode on',
+  'restart.actionPureOff': 'Pure mode off',
   'restart.confirm':
     '{action} plugin {name}. The change takes effect after restarting the dsh web server. Restart now?',
+  'restart.confirmPure':
+    '{action}. The change takes effect after restarting the dsh web server. Restart now?',
   'restart.now': 'Restart now',
   'restart.later': 'Later',
   'restart.foreign': 'The server was started externally, please restart dsh web manually',
@@ -151,5 +155,5 @@ export const en: Record<I18nKey, string> = {
   'settings.language': 'Language',
   'settings.confirmRestart': 'Ask to restart after plugin changes',
   'settings.confirmRestartHint':
-    'After enabling / disabling / uninstalling a plugin, ask whether to restart the web server if it is running'
+    'After enabling / disabling / uninstalling a plugin or toggling pure mode, ask whether to restart the web server if it is running'
 }

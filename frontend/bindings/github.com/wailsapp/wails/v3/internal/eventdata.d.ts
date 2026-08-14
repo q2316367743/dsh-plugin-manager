@@ -14,6 +14,10 @@ declare module "@wailsio/runtime" {
         interface CustomEvents {
             "proc:exit": services$0.ProcExit;
             "proc:output": services$0.ProcOutput;
+            "tray:quit-ready": void;
+            "tray:quit-request": void;
+            "tray:service-status": services$0.TrayServiceStatus;
+            "tray:toggle-service": void;
         }
     }
 }
