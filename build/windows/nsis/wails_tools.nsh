@@ -11,7 +11,7 @@
     !define INFO_COMPANYNAME "My Company"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "DSH Plugin Manager"
+    !define INFO_PRODUCTNAME "dsh 助手"
 !endif
 !ifndef INFO_PRODUCTVERSION
     !define INFO_PRODUCTVERSION "1.0.0"

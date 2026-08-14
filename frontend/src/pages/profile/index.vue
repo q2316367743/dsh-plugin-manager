@@ -1,6 +1,6 @@
 <template>
   <div class="profile-page">
-    <div v-if="store.hasWebApp" class="server-wrap">
+    <div class="server-wrap">
       <ServerCard/>
     </div>
 

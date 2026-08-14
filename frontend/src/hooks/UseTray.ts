@@ -22,14 +22,14 @@ export function useTray() {
   if (trayBridgeAttached) return
   trayBridgeAttached = true
 
-  // 服务状态变化（含 profile 切换后 hasWebApp 变化）→ 回推托盘，切换"启动/停止服务"标签与禁用态
+  // 服务状态变化 → 回推托盘，切换"启动/停止服务"标签与禁用态
   watch(
-    [() => store.server.status, () => store.hasWebApp],
+    () => store.server.status,
     () => {
       const status = store.server.status
       const payload: TrayServiceStatusPayload = {
         running: status === 'running-own' || status === 'running-foreign',
-        supported: store.hasWebApp
+        supported: true
       }
       Events.Emit('tray:service-status', payload)
     },

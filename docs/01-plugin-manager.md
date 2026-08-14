@@ -52,7 +52,7 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 | `hooks/DbStorage.ts` | 持久化 ref：内存态即时响应、异步落库（替代原 `UtoolsDbStorage`） |
 | `store/dsh/index.ts` | 全局 store：profiles / bundles / patch / dsh 解析 / 设置 / CLI 执行；web 服务启停经薄包装转发 `store/dsh/server.ts` |
 | `store/dsh/server.ts` | dsh web 服务启停与状态（从主 store 拆分，控制行数）：`refreshServerStatus`（PID + lsof 判定）**保留 busy**、`serverStart/serverStop`（busy 互斥）、`restartServer` **全程持有 busy**（stop→start 无间隙，重启期间按钮持续禁用）、日志监听 `attachServerLog`；`openServer` 按 `settings.browserMode` 分流——builtin 走 `nativeApi.browser.openInBuiltin`（内置窗口），system 走 `nativeApi.shell.openExternal`（默认浏览器） |
-| `hooks/UseTray.ts` | 系统托盘桥接：watch `server.status` + `hasWebApp` 回推 `tray:service-status`；响应 `tray:toggle-service`（按状态调 serverStart/Stop）、`tray:quit-request`（先停服务再回 `tray:quit-ready`） |
+| `hooks/UseTray.ts` | 系统托盘桥接：watch `server.status` 回推 `tray:service-status`（恒 `supported: true`——profile 恒含 web 应用）；响应 `tray:toggle-service`（按状态调 serverStart/Stop）、`tray:quit-request`（先停服务再回 `tray:quit-ready`） |
 | `hooks/UseUpdater.ts` | 应用自动更新桥接：响应 `app:update-ready` 弹「立即重启 / 稍后」确认（tdesign 命令式 DialogPlugin），确认后回发 `app:update-restart`；托盘「检查更新」结果 `app:update-result` 以消息提示 |
 | `pages/profile/index.vue` | 首页：服务卡片（置顶）、header（profile 切换 + 搜索 + 安装）、官方 / 第三方分组（纯净模式开关位于第三方分组卡片头部 actions；设置入口在服务卡片行） |
 | `pages/profile/restart.ts` | 插件变更后的重启提示（从 index.vue 拆分控制行数）：`promptRestart(action, name?)` 按服务状态 / `confirmRestart` 设置决定是否弹确认并调用 `restartServer` |

@@ -73,9 +73,7 @@ export const useDshStore = defineStore('dsh', {
   getters: {
     dshOk: (state) => state.dsh.state === 'ok',
     officialBundles: (state) => state.detail?.items.filter((i) => i.official) ?? [],
-    thirdPartyBundles: (state) => state.detail?.items.filter((i) => !i.official) ?? [],
-    /** 该 profile 是否包含 dsh web 应用（展示服务控制卡片） */
-    hasWebApp: (state) => !!state.detail?.bundles.includes('@deepseek-ai/dsh-web-app')
+    thirdPartyBundles: (state) => state.detail?.items.filter((i) => !i.official) ?? []
   },
 
   actions: {
