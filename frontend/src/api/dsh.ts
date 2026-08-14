@@ -4,25 +4,19 @@
  * 网络请求（npm / GitHub）直接走浏览器 fetch（Wails 本地 asset server 无 CORS 限制）。
  */
 import { Events } from '@wailsio/runtime'
-import {
-  DshService,
-  FileService,
-  ProcService
-} from '../../bindings/dsh-plugin-manager/services'
+import { DshService, ProcService } from '../../bindings/dsh-plugin-manager/services'
 import type {
   AppSettings,
   DshResolveResult,
   GithubSearchHit,
   InstalledPackage,
   NpmSearchHit,
-  ProfileExport,
   ProfileManifest
 } from '@/types/dsh'
 import {
   collectInsertRows,
   parsePatchEntries,
   removePatchEntry,
-  serializePatch,
   setPatchConfigEntry,
   setRowsDisabled,
   togglePatchEntry
@@ -227,23 +221,7 @@ export const dshApi = {
   togglePatchEntry,
   setRowsDisabled,
   setPatchConfigEntry,
-  removePatchEntry,
-  serializePatch,
-
-  // ---- 导出 / 导入 ----
-  buildExport(profile: string, bundles: string[], patchText: string): ProfileExport {
-    return {
-      profile,
-      bundles: [...bundles],
-      patches: parsePatchEntries(patchText),
-      exportedAt: new Date().toISOString()
-    }
-  },
-
-  writeTextFile: (filePath: string, content: string): Promise<void> =>
-    FileService.WriteTextFile(filePath, content),
-
-  readTextFile: (filePath: string): Promise<string> => FileService.ReadTextFile(filePath)
+  removePatchEntry
 }
 
 export type { AppSettings }

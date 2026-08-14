@@ -53,8 +53,6 @@ export const zh = {
   'toolbar.pure': '纯净模式',
   'toolbar.pureOn': '纯净模式已开启：仅保留 @deepseek-ai/ 官方插件',
   'toolbar.pureOff': '已关闭纯净模式，恢复所有第三方插件',
-  'toolbar.export': '导出',
-  'toolbar.import': '导入',
   'toolbar.checkUpdates': '检查更新',
   'toolbar.checking': '检查中…',
   'toolbar.noUpdates': '所有插件已是最新',
@@ -122,19 +120,6 @@ export const zh = {
   'config.jsonLabel': 'config JSON',
   'config.invalidJson': 'JSON 格式错误：{error}',
   'config.saved': '配置已保存到 cordis.patch.yml',
-
-  // 导出 / 导入
-  'export.saved': '已导出到 {path}',
-  'export.failed': '导出失败：{error}',
-  'import.title': '导入 profile 视图',
-  'import.chooseFile': '选择文件',
-  'import.invalidFile': '文件格式无效：{error}',
-  'import.preview': '导入预览',
-  'import.bundles': 'bundles（{count} 个）',
-  'import.patches': 'patch 条目（{count} 个）',
-  'import.missing': '以下 bundle 未安装，导入后需手动安装：{names}',
-  'import.applied': '导入成功',
-  'import.apply': '应用导入',
 
   // 设置
   'settings.title': '设置',

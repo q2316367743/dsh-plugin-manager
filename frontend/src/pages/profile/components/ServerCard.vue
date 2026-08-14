@@ -37,6 +37,9 @@
         <template #icon><server-icon /></template>
         {{ t('server.open') }}
       </t-button>
+      <t-button variant="outline" shape="square" @click="router.push('/settings')">
+        <template #icon><setting1-icon /></template>
+      </t-button>
     </div>
     <t-collapse v-if="store.server.logTail" class="server-log">
       <t-collapse-panel :header="t('server.log')">
@@ -46,12 +49,14 @@
   </t-card>
 </template>
 <script lang="ts" setup>
-import { PlayIcon, PoweroffIcon, ServerIcon } from 'tdesign-icons-vue-next'
+import { PlayIcon, PoweroffIcon, ServerIcon, Setting1Icon } from 'tdesign-icons-vue-next'
+import { useRouter } from 'vue-router'
 import { useDshStore } from '@/store/dsh'
 import { useI18n } from '@/i18n'
 
 const store = useDshStore()
 const { t } = useI18n()
+const router = useRouter()
 
 const statusText = computed(() => {
   switch (store.server.status) {

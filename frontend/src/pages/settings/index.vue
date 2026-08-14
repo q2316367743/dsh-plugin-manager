@@ -79,7 +79,6 @@ async function save() {
 <style scoped lang="less">
 .settings-card {
   margin: 16px;
-  max-width: 640px;
 
   .settings-form {
     margin-top: 8px;

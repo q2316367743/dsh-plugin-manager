@@ -56,8 +56,6 @@ export const en: Record<I18nKey, string> = {
   'toolbar.pure': 'Pure mode',
   'toolbar.pureOn': 'Pure mode on: only @deepseek-ai/ official plugins remain',
   'toolbar.pureOff': 'Pure mode off: all third-party plugins restored',
-  'toolbar.export': 'Export',
-  'toolbar.import': 'Import',
   'toolbar.checkUpdates': 'Check updates',
   'toolbar.checking': 'Checking…',
   'toolbar.noUpdates': 'All plugins up to date',
@@ -128,19 +126,6 @@ export const en: Record<I18nKey, string> = {
   'config.jsonLabel': 'config JSON',
   'config.invalidJson': 'Invalid JSON: {error}',
   'config.saved': 'Config saved to cordis.patch.yml',
-
-  // export / import
-  'export.saved': 'Exported to {path}',
-  'export.failed': 'Export failed: {error}',
-  'import.title': 'Import profile view',
-  'import.chooseFile': 'Choose file',
-  'import.invalidFile': 'Invalid file: {error}',
-  'import.preview': 'Import preview',
-  'import.bundles': 'bundles ({count})',
-  'import.patches': 'patch entries ({count})',
-  'import.missing': 'These bundles are not installed and need manual install after import: {names}',
-  'import.applied': 'Imported successfully',
-  'import.apply': 'Apply import',
 
   // settings
   'settings.title': 'Settings',

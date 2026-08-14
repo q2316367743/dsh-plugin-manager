@@ -1,5 +1,9 @@
 <template>
   <div class="profile-page">
+    <div v-if="store.hasWebApp" class="server-wrap">
+      <ServerCard />
+    </div>
+
     <header class="page-header">
       <div class="page-header-left">
         <t-select
@@ -18,49 +22,27 @@
         </t-input>
       </div>
       <div class="page-header-right">
-        <t-button theme="primary" variant="text" shape="square" @click="router.push('/settings')">
-          <template #icon><setting1-icon /></template>
+        <t-button
+          theme="primary"
+          :disabled="!store.dshOk || store.cliBusy"
+          @click="openInstall"
+        >
+          <template #icon><add-icon /></template>
+          {{ t('toolbar.install') }}
+        </t-button>
+        <t-button
+          variant="outline"
+          :disabled="!store.dshOk || store.cliBusy || checking"
+          :loading="checking"
+          @click="onCheckUpdates"
+        >
+          <template #icon><refresh-icon /></template>
+          {{ t('toolbar.checkUpdates') }}
         </t-button>
       </div>
     </header>
 
     <div class="page-body">
-      <ServerCard v-if="store.hasWebApp" />
-
-      <t-card class="toolbar">
-        <div class="toolbar-row">
-          <t-button
-            theme="primary"
-            :disabled="!store.dshOk || store.cliBusy"
-            @click="openInstall"
-          >
-            <template #icon><add-icon /></template>
-            {{ t('toolbar.install') }}
-          </t-button>
-          <t-button
-            variant="outline"
-            :disabled="!store.dshOk || store.cliBusy || checking"
-            :loading="checking"
-            @click="onCheckUpdates"
-          >
-            <template #icon><refresh-icon /></template>
-            {{ t('toolbar.checkUpdates') }}
-          </t-button>
-          <t-button variant="outline" @click="onExport">
-            <template #icon><upload-icon /></template>
-            {{ t('toolbar.export') }}
-          </t-button>
-          <t-button variant="outline" @click="openImport">
-            <template #icon><download-icon /></template>
-            {{ t('toolbar.import') }}
-          </t-button>
-          <div class="flex-1" />
-          <t-switch :value="store.pureMode" :disabled="store.cliBusy" @change="onPureMode">
-            <template #label>{{ t('toolbar.pure') }}</template>
-          </t-switch>
-        </div>
-      </t-card>
-
       <t-skeleton v-if="store.loading" :rows="5" class="skeleton" />
 
       <template v-else>
@@ -77,7 +59,13 @@
           :items="filteredThird"
           @toggle="onToggle"
           @action="onAction"
-        />
+        >
+          <template #actions>
+            <t-switch :value="store.pureMode" :disabled="store.cliBusy" @change="onPureMode">
+              <template #label>{{ t('toolbar.pure') }}</template>
+            </t-switch>
+          </template>
+        </PluginGroup>
         <t-empty v-if="!store.detail?.items.length" :description="t('list.empty')" class="empty" />
         <t-empty
           v-else-if="!filteredOfficial.length && !filteredThird.length"
@@ -90,24 +78,16 @@
 </template>
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router'
-import {
-  AddIcon,
-  DownloadIcon,
-  RefreshIcon,
-  SearchIcon,
-  Setting1Icon,
-  UploadIcon
-} from 'tdesign-icons-vue-next'
+import { AddIcon, RefreshIcon, SearchIcon } from 'tdesign-icons-vue-next'
 import ServerCard from './components/ServerCard.vue'
 import PluginGroup from './components/PluginGroup.vue'
 import { useDshStore } from '@/store/dsh'
 import { useI18n } from '@/i18n'
-import type { I18nKey } from '@/i18n'
 import MessageUtil from '@/utils/modal/MessageUtil'
 import MessageBoxUtil from '@/utils/modal/MessageBoxUtil'
 import { openInstallPlugin } from './modals/InstallPlugin'
 import { openPluginConfig } from './modals/PluginConfig'
-import { openImportProfile } from './modals/ImportProfile'
+import { promptRestart } from './restart'
 import { nativeApi } from '@/api/native'
 import type { BundleItem } from '@/types/dsh'
 
@@ -163,10 +143,6 @@ function openInstall() {
   openInstallPlugin({ profile: store.currentProfile })
 }
 
-function openImport() {
-  openImportProfile({ profile: store.currentProfile })
-}
-
 async function onCheckUpdates() {
   checking.value = true
   try {
@@ -179,11 +155,6 @@ async function onCheckUpdates() {
   } finally {
     checking.value = false
   }
-}
-
-async function onExport() {
-  const path = await store.exportProfile()
-  if (path) MessageUtil.success(t('export.saved', { path }))
 }
 
 async function onPureMode(on: boolean | string | number) {
@@ -242,54 +213,6 @@ async function doRemove(item: BundleItem) {
   }
 }
 
-type RestartAction = 'enabled' | 'disabled' | 'removed' | 'pure-on' | 'pure-off'
-
-/**
- * 启用 / 禁用 / 卸载 / 切换纯净模式后，若 web 服务在运行则询问是否立即重启。
- * 设置中关闭「不再提示」后静默跳过；外部启动的服务提示手动重启。
- */
-async function promptRestart(action: RestartAction, name?: string) {
-  const status = store.server.status
-  if (status === 'stopped' || status === 'unknown') return
-  if (!store.settings.confirmRestart) return
-  if (status === 'running-foreign') {
-    MessageUtil.info(t('restart.foreign'))
-    return
-  }
-  const actionKey: Record<RestartAction, I18nKey> = {
-    enabled: 'restart.actionEnabled',
-    disabled: 'restart.actionDisabled',
-    removed: 'restart.actionRemoved',
-    'pure-on': 'restart.actionPureOn',
-    'pure-off': 'restart.actionPureOff'
-  }
-  const actionText = actionKey[action]
-  const isPure = action === 'pure-on' || action === 'pure-off'
-  let restart = false
-  try {
-    await MessageBoxUtil.confirm(
-      isPure
-        ? t('restart.confirmPure', { action: t(actionText) })
-        : t('restart.confirm', { action: t(actionText), name: name ?? '' }),
-      t('restart.title'),
-      {
-        confirmButtonText: t('restart.now'),
-        cancelButtonText: t('restart.later')
-      }
-    )
-    restart = true
-  } catch {
-    /* 用户选择稍后 */
-  }
-  if (!restart) {
-    MessageUtil.info(t('restart.deferred'))
-    return
-  }
-  MessageUtil.info(t('restart.restarting'))
-  await store.restartServer()
-  MessageUtil.success(t('restart.done'))
-}
-
 async function doUpdate(item: BundleItem) {
   let tail = ''
   MessageUtil.info(t('plugin.updating', { name: item.name }))
@@ -331,6 +254,18 @@ async function doUpdate(item: BundleItem) {
         width: 240px;
       }
     }
+
+    .page-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+  }
+
+  .server-wrap {
+    flex-shrink: 0;
+    padding: 16px 16px 0;
   }
 
   .page-body {
@@ -340,15 +275,6 @@ async function doUpdate(item: BundleItem) {
     flex-direction: column;
     gap: 12px;
     padding: 16px;
-
-    .toolbar {
-      .toolbar-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-    }
 
     .skeleton {
       padding: 16px;

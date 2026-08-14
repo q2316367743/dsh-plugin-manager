@@ -1,6 +1,6 @@
 # 01 · DSH 插件管理器
 
-Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管理 dsh（DeepSeek Harness）的插件：启用 / 禁用、安装 / 移除、纯净模式、启动 dsh web 服务、编辑插件 config、导出 / 导入 profile 视图、检查更新。
+Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管理 dsh（DeepSeek Harness）的插件：启用 / 禁用、安装 / 移除、纯净模式、启动 dsh web 服务、编辑插件 config、检查更新。
 
 技术栈：Go（后端服务绑定）+ Vue 3 / TDesign / Vite（前端，位于 `frontend/`），Wails v3 提供原生能力（对话框 / 剪贴板 / 打开外链 / 事件系统）。本应用为纯桌面形态，**与 utools 无任何关系**。
 
@@ -17,12 +17,11 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 
 ```
 /（仓库根）
-├── main.go                  # Wails 入口：embed frontend/dist + 注册 4 个服务 + 窗口
+├── main.go                  # Wails 入口：embed frontend/dist + 注册 3 个服务 + 窗口
 ├── tray.go                  # 系统托盘：显示/隐藏 / 启动停止服务 / 退出（含关闭到托盘钩子）
 ├── services/
 │   ├── dsh.go               # DshService：DSH_HOME / profile / patch / 可执行文件探测
 │   ├── proc.go              # ProcService：流式子进程（事件推送）/ kill / isAlive / lsof
-│   ├── file.go              # FileService：通用文件读写
 │   ├── kv.go                # KVService：应用级键值存储（JSON 文件）
 │   └── tray.go              # TrayServiceStatus 事件负载类型（托盘状态契约）
 ├── config.yml               # Wails 项目配置（产品名 / 版本 / dev 模式）
@@ -37,25 +36,25 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 |---|---|---|
 | `DshService` | `GetDshHome / ListProfiles / ReadProfileManifest / WriteProfileManifest / ReadProfilePatch / WriteProfilePatch / ReadBundlePatch / ReadInstalledPackage / ResolveDshBin / ResolveDsh` | dsh 生态文件访问；`ResolveDsh` 探测运行方式（直接执行 → bun 兜底）返回 `{state, command, prefix, version}` |
 | `ProcService` | `RunCli(jobId, cmd, args, detached) / Kill / IsAlive / FindPidByPort` | 流式子进程；输出经事件 `proc:output`、退出经 `proc:exit` 推送（按 jobId 分发）；`Kill` 为 SIGTERM → 3s → SIGKILL；`FindPidByPort` 走 lsof（win32 返回 null） |
-| `FileService` | `ReadTextFile / WriteTextFile` | 导出 / 导入 JSON |
 | `KVService` | `GetItem / SetItem / RemoveItem` | 替代原 dbStorage：内存 map + 持久化到 `os.UserConfigDir()/dsh-plugin-manager/kv.json`（原子写） |
 
 ### 前端（`frontend/src/`）
 | 文件 | 职责 |
 |---|---|
 | `api/dsh.ts` | 底层能力封装（RL-03）：服务绑定 + fetch + 事件式 CLI；`runCliStream(jobId, cmd, args, detached, onOutput)` 内部 `Events.On("proc:output"/"proc:exit")` 按 jobId 分发并自动清理监听 |
-| `api/native.ts` | 原生能力适配层：`Dialogs.OpenFile/SaveFile`、`Clipboard.SetText`、`Browser.OpenURL`、KV 转发；替代原 `window.preload.inject` |
+| `api/native.ts` | 原生能力适配层：`Dialogs.OpenFile`、`Clipboard.SetText`、`Browser.OpenURL`、KV 转发；替代原 `window.preload.inject` |
 | `utils/dsh/patch.ts` | cordis.patch.yml 解析 / 增删改 / 序列化（`yaml` 库 Document 级操作，保证注释与 `!!js` 表达式往返保真） |
 | `utils/native/KeyValueUtil.ts` | KV 访问（async），设置 / 服务 PID / 主题 / 语言持久化 |
 | `hooks/DbStorage.ts` | 持久化 ref：内存态即时响应、异步落库（替代原 `UtoolsDbStorage`） |
 | `store/dsh/index.ts` | 全局 store：profiles / bundles / patch / dsh 解析 / 设置 / CLI 执行；web 服务启停经薄包装转发 `store/dsh/server.ts` |
 | `store/dsh/server.ts` | dsh web 服务启停与状态（从主 store 拆分，控制行数）：`refreshServerStatus`（PID + lsof 判定）**保留 busy**、`serverStart/serverStop`（busy 互斥）、`restartServer` **全程持有 busy**（stop→start 无间隙，重启期间按钮持续禁用）、日志监听 `attachServerLog` |
 | `hooks/UseTray.ts` | 系统托盘桥接：watch `server.status` + `hasWebApp` 回推 `tray:service-status`；响应 `tray:toggle-service`（按状态调 serverStart/Stop）、`tray:quit-request`（先停服务再回 `tray:quit-ready`） |
-| `pages/profile/index.vue` | 首页：header（profile 切换 + 设置入口 + 搜索）、服务卡片、工具栏、官方 / 第三方分组 |
+| `pages/profile/index.vue` | 首页：服务卡片（置顶）、header（profile 切换 + 搜索 + 安装 / 检查更新）、官方 / 第三方分组（纯净模式开关位于第三方分组卡片头部 actions；设置入口在服务卡片行） |
+| `pages/profile/restart.ts` | 插件变更后的重启提示（从 index.vue 拆分控制行数）：`promptRestart(action, name?)` 按服务状态 / `confirmRestart` 设置决定是否弹确认并调用 `restartServer` |
 | `pages/setup/index.vue` | 全屏引导页：dsh 缺失时的安装命令 / 手动路径 / 文件选择 / 校验 |
 | `pages/redirect/RedirectHome.vue` | `/` 兜底重定向（dsh 未就绪 → `/setup`，否则 → 当前 profile 首页） |
 | `pages/settings/index.vue` | 设置页（`SubPageLayout` 返回）：dsh 路径 / 端口 / 主题 / 语言 |
-| `pages/profile/modals/` | `InstallPlugin.tsx` + `InstallPluginContent.vue`、`PluginConfig.tsx` + `PluginConfigContent.vue`、`ImportProfile.tsx` + `ImportProfileContent.vue`（命令式弹窗，tsx 外壳 + vue 内容） |
+| `pages/profile/modals/` | `InstallPlugin.tsx` + `InstallPluginContent.vue`、`PluginConfig.tsx` + `PluginConfigContent.vue`（命令式弹窗，tsx 外壳 + vue 内容） |
 | `i18n/` | zh / en 字典 + `useI18n`（KV 异步加载语言） |
 | `hooks/ColorMode.ts` | 亮 / 暗 / 跟随系统（`theme-mode` 属性切换 tdesign 暗色） |
 | `types/dsh.ts` | 领域类型：ProfileDetail / BundleItem / PatchEntry / ServerState 等 |
@@ -81,7 +80,7 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
   disabled: true            # 启用 / 禁用
   config: { ... }           # config 覆盖（JSON 编辑器操作这个）
 ```
-注意：`!!js` 表达式（如 `port: !!js ctx.webStartup.port ?? 3080`）经 `yaml` 库可原样往返；**导出再导入会丢失 `!!js` 标记**（序列化为纯字符串）。
+注意：`!!js` 表达式（如 `port: !!js ctx.webStartup.port ?? 3080`）经 `yaml` 库可原样往返。
 
 ### BundleItem（前端合并视图）
 `name / version / description / homepage / repository / official（@deepseek-ai/ 前缀）/ source（npm|github|local|unknown）/ rows（行 id 列表）/ enabled / hasUpdate / checking`
@@ -93,11 +92,6 @@ Wails v3 桌面应用「DSH 插件管理器」的技术文档。按 profile 管�
 - `/key/dsh/settings` → `{ dshPath, port, confirmRestart }`（port 默认 3080）
 - `/key/app/theme-mode` → `'light' | 'dark' | 'system'`
 - `/key/app/lang` → `'zh' | 'en'`
-
-### 导出 / 导入文件结构（JSON）
-```json
-{ "profile": "web", "bundles": ["..."], "patches": [{ "id": "...", "disabled": true }], "exportedAt": "..." }
-```
 
 ## 五、注意事项 / 边界
 

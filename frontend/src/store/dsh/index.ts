@@ -3,7 +3,6 @@
  */
 import { defineStore } from 'pinia'
 import { dshApi } from '@/api/dsh'
-import { nativeApi } from '@/api/native'
 import { KeyValueUtil } from '@/utils/native'
 import { LocalNameEnum } from '@/global/LocalNameEnum'
 import {
@@ -20,14 +19,9 @@ import type {
   BundleRowRef,
   DshResolveResult,
   ProfileDetail,
-  ProfileExport,
   ServerState
 } from '@/types/dsh'
 import { parsePatchEntries, readPatchConfig } from '@/utils/dsh/patch'
-
-const PATCH_HEADER = `# dsh profile patch layer — managed by DSH Plugin Manager
-# 由 DSH 插件管理器维护；手动编辑同样生效，管理器保存时会整体重写。
-# Managed by DSH Plugin Manager; manual edits are respected but rewritten on save.`
 
 const defaultSettings: AppSettings = { dshPath: '', port: 3080, confirmRestart: true }
 
@@ -337,50 +331,6 @@ export const useDshStore = defineStore('dsh', {
     /** 重启 web 服务（仅对本管理器启动的服务生效），返回是否已重启 */
     async restartServer(): Promise<boolean> {
       return restartServer(this)
-    },
-
-    // ---- 导出 / 导入 ----
-    /** 导出 profile 视图，返回导出文件路径（取消返回 null） */
-    async exportProfile(): Promise<string | null> {
-      if (!this.detail) return null
-      const defaultPath =
-        (await dshApi.getDshHome()) + `/${this.currentProfile}-profile-export.json`
-      const path = await nativeApi.dialog.save({
-        title: 'Export profile view',
-        defaultPath,
-        filters: [{ name: 'JSON', extensions: ['json'] }]
-      })
-      if (!path) return null
-      const payload = dshApi.buildExport(
-        this.currentProfile,
-        this.detail.bundles,
-        await dshApi.readProfilePatch(this.currentProfile)
-      )
-      await dshApi.writeTextFile(path, JSON.stringify(payload, null, 2))
-      return path
-    },
-
-    /** 导入 profile 视图文件，返回缺失的 bundle 名列表 */
-    async importProfileFromFile(path: string): Promise<{ missing: string[] }> {
-      const raw = await dshApi.readTextFile(path)
-      let data: ProfileExport
-      try {
-        data = JSON.parse(raw) as ProfileExport
-      } catch (e) {
-        throw new Error(`invalid JSON: ${e instanceof Error ? e.message : String(e)}`)
-      }
-      if (!Array.isArray(data.bundles) || !Array.isArray(data.patches)) {
-        throw new Error('missing "bundles" or "patches" array')
-      }
-      const manifest = await dshApi.readProfileManifest(this.currentProfile)
-      if (!manifest) throw new Error('profile manifest not found')
-      const dependencies = Object.keys(manifest.dependencies ?? {})
-      const missing = data.bundles.filter((name) => !dependencies.includes(name))
-      manifest.dsh = { ...manifest.dsh, profile: { ...manifest.dsh?.profile, bundles: data.bundles } }
-      await dshApi.writeProfileManifest(this.currentProfile, manifest)
-      await dshApi.writeProfilePatch(this.currentProfile, dshApi.serializePatch(data.patches, PATCH_HEADER))
-      await this.loadProfile(this.currentProfile)
-      return { missing }
     }
   }
 })

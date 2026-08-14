@@ -1,8 +1,7 @@
 /**
  * dsh 插件管理器 —— Wails v3 桌面应用入口。
- * 前端构建产物嵌入二进制（frontend/dist），注册四个 Go 服务供前端调用：
- * DshService（dsh 生态文件访问）/ ProcService（子进程与端口）/
- * FileService（通用文件读写）/ KVService（应用键值存储）。
+ * 前端构建产物嵌入二进制（frontend/dist），注册三个 Go 服务供前端调用：
+ * DshService（dsh 生态文件访问）/ ProcService（子进程与端口）/ KVService（应用键值存储）。
  */
 package main
 
@@ -36,7 +35,6 @@ func main() {
 		Services: []application.Service{
 			application.NewService(services.NewDshService()),
 			application.NewService(services.NewProcService()),
-			application.NewService(services.NewFileService()),
 			application.NewService(services.NewKVService()),
 		},
 		Assets: application.AssetOptions{

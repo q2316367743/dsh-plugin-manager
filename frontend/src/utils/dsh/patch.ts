@@ -45,13 +45,6 @@ function ensureSeq(doc: Document): YAMLSeq {
   return seq
 }
 
-/** 序列化条目数组为 patch 文本，可前置注释头 */
-export function serializePatch(entries: PatchEntry[], header?: string): string {
-  const doc = new Document(entries)
-  const body = doc.toString()
-  return header ? `${header.trimEnd()}\n${body}` : body
-}
-
 /** 按行 id 切换 disabled 状态（不存在的行自动追加） */
 export function togglePatchEntry(text: string, id: string, disabled: boolean): string {
   return setRowsDisabled(text, [id], disabled)

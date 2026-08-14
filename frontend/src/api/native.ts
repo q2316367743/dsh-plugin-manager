@@ -82,18 +82,6 @@ export const nativeApi = {
       const result = await Dialogs.OpenFile(dialogOptions)
       if (!result) return []
       return Array.isArray(result) ? result : [result]
-    },
-
-    /** 保存对话框，返回保存路径（取消返回 null） */
-    async save(options: NativeDialogOptions = {}): Promise<string | null> {
-      const { directory, filename } = splitDefaultPath(options.defaultPath)
-      const result = await Dialogs.SaveFile({
-        Title: options.title,
-        Directory: directory,
-        Filename: filename,
-        Filters: mapFilters(options.filters)
-      })
-      return result || null
     }
   },
 

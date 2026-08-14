@@ -126,14 +126,6 @@ export interface GithubSearchHit {
   updatedAt: string
 }
 
-/** 导出/导入的 profile 视图文件结构 */
-export interface ProfileExport {
-  profile: string
-  bundles: string[]
-  patches: PatchEntry[]
-  exportedAt: string
-}
-
 export interface SpawnHandlers {
   onStdout?: (chunk: string) => void
   onStderr?: (chunk: string) => void

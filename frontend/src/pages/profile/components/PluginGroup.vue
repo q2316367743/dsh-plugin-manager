@@ -1,5 +1,8 @@
 <template>
   <t-card :title="title" class="group-card">
+    <template #actions>
+      <slot name="actions" />
+    </template>
     <div class="group-list">
       <div v-for="item in items" :key="item.name" class="group-row">
         <PluginCard
