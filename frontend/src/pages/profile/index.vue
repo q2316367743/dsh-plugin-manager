@@ -10,6 +10,7 @@
           :value="store.currentProfile"
           :options="profileOptions"
           class="profile-select"
+          @change="store.selectProfile(`${$event}`)"
         >
           <template #panelBottomContent>
             <div class="p-8px" style="border-top: 1px solid var(--td-border-level-1-color)">
