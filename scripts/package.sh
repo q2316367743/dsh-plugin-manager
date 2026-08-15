@@ -18,7 +18,9 @@
 #           --apple-id <Apple ID> --team-id PNP35F7Q7P --password <app 专用密码>
 #
 # 用法：
-#   scripts/package.sh                     # adhoc 签名（本地自测）
+#   scripts/package.sh                     # adhoc 签名（本地自测，版本取自 build/config.yml）
+#   scripts/package.sh 1.0.1               # 先统一同步所有版本文件到 1.0.1，再打包
+#   VERSION=1.0.1 scripts/package.sh       # 等价于位置参数形式
 #   SIGN=1 scripts/package.sh              # Developer ID 签名（身份取 wails3 setup 默认）
 #   DEV_ID="Developer ID Application: XXX" SIGN=1 scripts/package.sh            # 签名
 #   DEV_ID="..." SIGN=1 NOTARIZE=1 scripts/package.sh                           # 签名 + 公证
@@ -42,11 +44,74 @@ fail_trap() {
 trap fail_trap ERR
 
 # ── 0. 准备：解析版本 / 产品名，检查工具链 ──────────────────────────
-VERSION="$(sed -nE 's/^[[:space:]]+version:[[:space:]]*"([^"]+)".*/\1/p' build/config.yml | head -1)"
 PRODUCT_NAME="$(sed -nE 's/^[[:space:]]+productName:[[:space:]]*"([^"]+)".*/\1/p' build/config.yml | head -1)"
-if [ -z "$VERSION" ]; then
-  echo "✗ 无法从 build/config.yml 解析 info.version" >&2
-  exit 1
+
+# 版本号唯一来源：build/config.yml 的 info.version。若通过位置参数 / VERSION 环境变量
+# 显式指定新版本，则先把它统一同步写入所有携带版本号的源文件，再继续打包。
+sync_version_files() {
+  local v="$1"
+  # 命中 <key> 行后，将紧随其后的 <string> 值替换为 val（兼容 macOS BSD sed 的多命令限制）
+  plist_set() {
+    local file="$1" key="$2" val="$3"
+    awk -v k="$key" -v val="$val" \
+      '$0 ~ k { print; getline; sub(/<string>[^<]*<\/string>/, "<string>" val "</string>"); print; next }
+       { print }' \
+      "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  }
+  sed -i '' -E 's/^([[:space:]]*version:[[:space:]]*")[^"]*(".*)$/\1'"${v}"'\2/' build/config.yml
+  plist_set build/darwin/Info.plist     CFBundleShortVersionString "$v"
+  plist_set build/darwin/Info.plist     CFBundleVersion "$v"
+  plist_set build/darwin/Info.dev.plist CFBundleShortVersionString "$v"
+  plist_set build/darwin/Info.dev.plist CFBundleVersion "$v"
+  plist_set build/ios/Info.plist        CFBundleShortVersionString "$v"
+  plist_set build/ios/Info.plist        CFBundleVersion "$v"
+  plist_set build/ios/Info.dev.plist    CFBundleShortVersionString "${v}-dev"
+  plist_set build/ios/Info.dev.plist    CFBundleVersion "$v"
+  sed -i '' -E "s/\"file_version\": \"[^\"]*\"/\"file_version\": \"${v}\"/" build/windows/info.json
+  sed -i '' -E "s/\"ProductVersion\": \"[^\"]*\"/\"ProductVersion\": \"${v}\"/" build/windows/info.json
+  sed -i '' -E "s/^version: \".*\"/version: \"${v}\"/" build/linux/nfpm/nfpm.yaml
+  sed -i '' -E "s/^[[:space:]]*version: '[^']*',$/    version: '${v}',/" frontend/src/global/Constant.ts
+  sed -i '' -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v${v}/g" website/index.html
+}
+
+# 校验各文件版本与期望一致；不一致仅告警，不中断打包
+check_version() {
+  local file="$1" pattern="$2" min="$3" label="$4" n
+  n="$(grep -cE "$pattern" "$file" || true)"
+  n="${n:-0}"
+  if [ "$n" -ge "$min" ]; then
+    echo "  ✓ ${label}"
+  else
+    echo "  ! ${label} 版本未同步（期望命中「${pattern}」×${min}，实际 ${n}）；可运行 VERSION=<新版本> scripts/package.sh 统一同步" >&2
+  fi
+}
+
+REQUESTED_VERSION="${1:-${VERSION:-}}"
+if [ -n "$REQUESTED_VERSION" ]; then
+  if ! [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "✗ 版本号格式非法（期望形如 1.0.1）：${REQUESTED_VERSION}" >&2
+    exit 1
+  fi
+  VERSION="$REQUESTED_VERSION"
+  echo "==> [0] 同步版本号 → ${VERSION}"
+  sync_version_files "$VERSION"
+else
+  VERSION="$(sed -nE 's/^[[:space:]]+version:[[:space:]]*"([^"]+)".*/\1/p' build/config.yml | head -1)"
+  if [ -z "$VERSION" ]; then
+    echo "✗ 无法从 build/config.yml 解析 info.version" >&2
+    exit 1
+  fi
+  echo "==> [0] 版本号取自 build/config.yml：${VERSION}"
+  check_version build/config.yml             "\"${VERSION}\""                1 "build/config.yml"
+  check_version build/darwin/Info.plist      "<string>${VERSION}</string>"    2 "build/darwin/Info.plist"
+  check_version build/darwin/Info.dev.plist  "<string>${VERSION}</string>"    2 "build/darwin/Info.dev.plist"
+  check_version build/windows/info.json      "\"${VERSION}\""                2 "build/windows/info.json"
+  check_version build/linux/nfpm/nfpm.yaml   "\"${VERSION}\""                1 "build/linux/nfpm/nfpm.yaml"
+  check_version build/ios/Info.plist         "<string>${VERSION}</string>"    2 "build/ios/Info.plist"
+  check_version build/ios/Info.dev.plist     "<string>${VERSION}</string>"    1 "build/ios/Info.dev.plist"
+  check_version build/ios/Info.dev.plist     "<string>${VERSION}-dev</string>" 1 "build/ios/Info.dev.plist(-dev)"
+  check_version frontend/src/global/Constant.ts "'${VERSION}'"                1 "frontend/src/global/Constant.ts"
+  check_version website/index.html           "v${VERSION}"                   2 "website/index.html"
 fi
 
 for tool in wails3 makensis zip unzip hdiutil codesign; do

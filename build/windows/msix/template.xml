@@ -25,7 +25,7 @@
         </Capabilities>
         <Applications>
             <Application
-                Id="com.example.dshpluginmanager"
+                Id="xyz.esion.dshpluginmanager"
                 Description="A dsh-plugin-manager application"
                 DisplayName="My Product"
                 ExecutableName="dsh-plugin-manager"

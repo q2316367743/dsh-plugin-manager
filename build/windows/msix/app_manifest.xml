@@ -8,7 +8,7 @@
   IgnorableNamespaces="uap3">
   
   <Identity 
-    Name="com.example.dshpluginmanager"
+    Name="xyz.esion.dshpluginmanager"
     Publisher="CN=My Company"
     Version="0.1.0.0" 
     ProcessorArchitecture="arm64" />
@@ -29,7 +29,7 @@
   </Resources>
   
   <Applications>
-    <Application Id="com.example.dshpluginmanager" Executable="dsh-plugin-manager" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="xyz.esion.dshpluginmanager" Executable="dsh-plugin-manager" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="My Product"
         Description="A dsh-plugin-manager application"
