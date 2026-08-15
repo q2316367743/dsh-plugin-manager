@@ -61,6 +61,14 @@ export const nativeApi = {
   clipboard: {
     copyText: async (text: string): Promise<void> => {
       await Clipboard.SetText(text)
+    },
+    /** 读取系统剪贴板文本（读取失败返回空串） */
+    readText: async (): Promise<string> => {
+      try {
+        return (await Clipboard.Text()) ?? ''
+      } catch {
+        return ''
+      }
     }
   },
 

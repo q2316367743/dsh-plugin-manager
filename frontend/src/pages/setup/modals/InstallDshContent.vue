@@ -103,6 +103,7 @@ void start()
   display: flex;
   flex-direction: column;
   min-height: 280px;
+  margin-bottom: -16px;
 
   .console {
     flex: 1;
@@ -132,6 +133,7 @@ void start()
     display: flex;
     justify-content: flex-end;
     padding-top: 12px;
+
   }
 }
 </style>

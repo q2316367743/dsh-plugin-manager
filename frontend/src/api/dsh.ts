@@ -50,6 +50,12 @@ export const dshApi = {
   readBundlePatch: (profile: string, packageName: string): Promise<string | null> =>
     DshService.ReadBundlePatch(profile, packageName),
 
+  /** 读取 ~/.dsh/settings.yaml 原文；文件不存在返回空串 */
+  readDshSettings: (): Promise<string> => DshService.ReadDshSettings(),
+
+  /** 将内容写入 ~/.dsh/settings.yaml（不存在则创建） */
+  writeDshSettings: (content: string): Promise<void> => DshService.WriteDshSettings(content),
+
   readInstalledPackage: async (
     profile: string,
     packageName: string

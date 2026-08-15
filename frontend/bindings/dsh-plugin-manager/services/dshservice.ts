@@ -36,6 +36,13 @@ export function ReadBundlePatch(profile: string, packageName: string): $Cancella
 }
 
 /**
+ * * 读取 ~/.dsh/settings.yaml 原文；文件不存在返回空串。
+ */
+export function ReadDshSettings(): $CancellablePromise<string> {
+    return $Call.ByID(1697234437);
+}
+
+/**
  * * 读取已安装包（bundle 或普通依赖）的 package.json；未安装返回 nil。
  */
 export function ReadInstalledPackage(profile: string, packageName: string): $CancellablePromise<{ [_ in string]?: any } | null> {
@@ -75,6 +82,13 @@ export function ResolveDshBin(configuredPath: string): $CancellablePromise<strin
  */
 export function ResolveToolBin(name: string): $CancellablePromise<string | null> {
     return $Call.ByID(3902555958, name);
+}
+
+/**
+ * * 将内容写入 ~/.dsh/settings.yaml（不存在则创建）。
+ */
+export function WriteDshSettings(content: string): $CancellablePromise<void> {
+    return $Call.ByID(119326454, content);
 }
 
 export function WriteProfileManifest(profile: string, manifest: { [_ in string]?: any } | null): $CancellablePromise<void> {

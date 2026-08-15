@@ -12,7 +12,7 @@ export function openPluginConfig(options: { profile: string; bundle: BundleItem 
   const dialog = DialogPlugin({
     header: `${t('config.title')} · ${options.bundle.name}`,
     placement: 'center',
-    width: '560px',
+    width: '80vw',
     body: () =>
       h(PluginConfigContent, {
         profile: options.profile,

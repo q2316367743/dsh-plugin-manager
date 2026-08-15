@@ -60,6 +60,7 @@ export const en: Record<I18nKey, string> = {
 
   // toolbar
   'toolbar.install': 'Install plugin',
+  'toolbar.globalSettings': 'Global Settings',
   'toolbar.pure': 'Pure mode',
   'toolbar.pureOn': 'Pure mode on: only @deepseek-ai/ official plugins remain',
   'toolbar.pureOff': 'Pure mode off: all third-party plugins restored',
@@ -142,6 +143,10 @@ export const en: Record<I18nKey, string> = {
 
   // settings
   'settings.title': 'Settings',
+  'settings.yaml.title': 'Edit settings.yaml',
+  'settings.yaml.pathLabel': 'Config file path',
+  'settings.yaml.invalidYaml': 'Invalid YAML: {error}',
+  'settings.yaml.saved': 'settings.yaml saved',
   'settings.dshPath': 'dsh executable',
   'settings.dshPathHint': 'Leave empty to auto-detect (PATH / ~/.bun/bin)',
   'settings.chooseFile': 'Browse…',

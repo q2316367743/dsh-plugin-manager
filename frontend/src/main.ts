@@ -1,7 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia';
 import App from './App.vue'
-import {router} from './plugin/router';
+import { router } from './plugin/router';
+import './plugin/monaco'; // 注册 monaco-editor worker 环境（编辑器组件挂载前需就绪）
 import { useDshStore } from '@/store/dsh';
 import { useColorMode } from '@/hooks';
 

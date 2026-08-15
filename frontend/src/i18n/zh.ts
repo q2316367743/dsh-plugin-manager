@@ -57,6 +57,7 @@ export const zh = {
 
   // 工具栏
   'toolbar.install': '安装插件',
+  'toolbar.globalSettings': '全局设置',
   'toolbar.pure': '纯净模式',
   'toolbar.pureOn': '纯净模式已开启：仅保留 @deepseek-ai/ 官方插件',
   'toolbar.pureOff': '已关闭纯净模式，恢复所有第三方插件',
@@ -134,6 +135,10 @@ export const zh = {
 
   // 设置
   'settings.title': '设置',
+  'settings.yaml.title': '编辑 settings.yaml',
+  'settings.yaml.pathLabel': '配置文件路径',
+  'settings.yaml.invalidYaml': 'YAML 格式错误：{error}',
+  'settings.yaml.saved': 'settings.yaml 已保存',
   'settings.dshPath': 'dsh 可执行文件',
   'settings.dshPathHint': '留空则自动检测（PATH / ~/.bun/bin）',
   'settings.chooseFile': '选择文件',

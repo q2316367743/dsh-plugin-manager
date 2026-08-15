@@ -123,6 +123,22 @@ func (s *DshService) WriteProfilePatch(profile string, content string) error {
 	return os.WriteFile(filepath.Join(s.profileDir(profile), profilePatchFilename), []byte(content), 0o644)
 }
 
+const dshSettingsFilename = "settings.yaml"
+
+/** 读取 ~/.dsh/settings.yaml 原文；文件不存在返回空串。 */
+func (s *DshService) ReadDshSettings() string {
+	raw, err := os.ReadFile(filepath.Join(s.GetDshHome(), dshSettingsFilename))
+	if err != nil {
+		return ""
+	}
+	return string(raw)
+}
+
+/** 将内容写入 ~/.dsh/settings.yaml（不存在则创建）。 */
+func (s *DshService) WriteDshSettings(content string) error {
+	return os.WriteFile(filepath.Join(s.GetDshHome(), dshSettingsFilename), []byte(content), 0o644)
+}
+
 /**
  * 解析某个 bundle 在 profile 中的安装目录。
  * pnpm 的 hoisted 结构下，@deepseek-ai/* 位于 profiles/node_modules，

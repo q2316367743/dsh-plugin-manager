@@ -49,6 +49,12 @@
           </template>
           {{ t('toolbar.install') }}
         </t-button>
+        <t-button variant="outline" @click="openSettingsYaml">
+          <template #icon>
+            <setting-icon/>
+          </template>
+          {{ t('toolbar.globalSettings') }}
+        </t-button>
       </div>
     </header>
 
@@ -87,7 +93,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {AddIcon, RefreshIcon, SearchIcon} from 'tdesign-icons-vue-next'
+import {AddIcon, RefreshIcon, SearchIcon, SettingIcon} from 'tdesign-icons-vue-next'
 import ServerCard from './components/ServerCard.vue'
 import PluginGroup from './components/PluginGroup.vue'
 import {useDshStore} from '@/store/dsh'
@@ -97,6 +103,7 @@ import MessageBoxUtil from '@/utils/modal/MessageBoxUtil'
 import {openInstallPlugin} from './modals/InstallPlugin'
 import {openUpdatePlugin} from './modals/UpdatePlugin'
 import {openPluginConfig} from './modals/PluginConfig'
+import {openSettingsYaml} from './modals/SettingsYaml'
 import {promptRestart} from './restart'
 import {nativeApi} from '@/api/native'
 import type {BundleItem} from '@/types/dsh'
@@ -208,8 +215,7 @@ async function doRemove(item: BundleItem) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
-    height: 56px;
+    padding: 0 16px 16px;
     flex-shrink: 0;
     // Acrylic glass material — Fluent Design
     background-color: color-mix(in srgb, var(--td-bg-color-container) 72%, transparent);
@@ -243,7 +249,7 @@ async function doRemove(item: BundleItem) {
 
   .server-wrap {
     flex-shrink: 0;
-    padding: 16px 16px 0;
+    padding: 16px;
   }
 
   .page-body {
