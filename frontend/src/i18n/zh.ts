@@ -43,6 +43,7 @@ export const zh = {
   'server.open': '打开浏览器',
   'server.busy': '处理中…',
   'server.log': '运行日志',
+  'server.logEmpty': '暂无运行日志',
   'server.noDsh': 'dsh 未就绪，请先在上方配置',
 
   // 插件列表

@@ -46,6 +46,7 @@ export const en: Record<I18nKey, string> = {
   'server.open': 'Open in browser',
   'server.busy': 'Working…',
   'server.log': 'Runtime log',
+  'server.logEmpty': 'No runtime log yet',
   'server.noDsh': 'dsh not ready, configure it above first',
 
   // list

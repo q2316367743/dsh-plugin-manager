@@ -7,6 +7,15 @@
         <t-tag size="small" :theme="statusTagTheme" variant="light">{{ statusText }}</t-tag>
       </div>
       <span class="server-port">{{ t('server.port') }}: {{ store.settings.port }}</span>
+      <t-link
+        class="log-link"
+        theme="primary"
+        :disabled="!store.server.logTail"
+        @click="openServerLog"
+      >
+        <template #prefixIcon><system-log-icon /></template>
+        {{ t('server.log') }}
+      </t-link>
       <div class="flex-1" />
       <t-button
         v-if="store.server.status === 'stopped' || store.server.status === 'unknown'"
@@ -41,18 +50,14 @@
         <template #icon><setting1-icon /></template>
       </t-button>
     </div>
-    <t-collapse v-if="store.server.logTail" class="server-log">
-      <t-collapse-panel :header="t('server.log')">
-        <pre class="log-area">{{ store.server.logTail }}</pre>
-      </t-collapse-panel>
-    </t-collapse>
   </t-card>
 </template>
 <script lang="ts" setup>
-import { PlayIcon, PoweroffIcon, ServerIcon, Setting1Icon } from 'tdesign-icons-vue-next'
+import { PlayIcon, PoweroffIcon, ServerIcon, Setting1Icon, SystemLogIcon } from 'tdesign-icons-vue-next'
 import { useRouter } from 'vue-router'
 import { useDshStore } from '@/store/dsh'
 import { useI18n } from '@/i18n'
+import { openServerLog } from '../modals/ServerLog'
 
 const store = useDshStore()
 const { t } = useI18n()
@@ -105,24 +110,9 @@ const statusTagTheme = computed(() => {
       font-size: 13px;
       color: var(--td-text-color-secondary);
     }
-  }
 
-  .server-log {
-    margin-top: 12px;
-
-    .log-area {
-      margin: 0;
-      padding: 8px 12px;
-      max-height: 240px;
-      overflow: auto;
-      border-radius: var(--td-radius-default);
-      background-color: var(--td-bg-color-component);
-      font-size: 12px;
-      font-family: monospace;
-      line-height: 1.6;
-      color: var(--td-text-color-primary);
-      white-space: pre-wrap;
-      word-break: break-all;
+    .log-link {
+      font-size: 13px;
     }
   }
 }
