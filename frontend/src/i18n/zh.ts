@@ -55,6 +55,8 @@ export const zh = {
   'list.refresh': '刷新列表',
   'list.refreshDone': 'profile 列表已刷新',
   'list.refreshFailed': '刷新 profile 列表失败',
+  'list.pluginsRefreshDone': '插件列表已刷新',
+  'list.pluginsRefreshFailed': '刷新插件列表失败',
 
   // 工具栏
   'toolbar.install': '安装插件',

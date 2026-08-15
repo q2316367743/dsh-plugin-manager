@@ -58,6 +58,8 @@ export const en: Record<I18nKey, string> = {
   'list.refresh': 'Refresh list',
   'list.refreshDone': 'Profile list refreshed',
   'list.refreshFailed': 'Failed to refresh profile list',
+  'list.pluginsRefreshDone': 'Plugin list refreshed',
+  'list.pluginsRefreshFailed': 'Failed to refresh plugin list',
 
   // toolbar
   'toolbar.install': 'Install plugin',

@@ -37,6 +37,17 @@
             <search-icon/>
           </template>
         </t-input>
+        <t-button
+          variant="outline"
+          :loading="refreshingList"
+          :disabled="!store.dshOk || store.cliBusy"
+          @click="refreshPlugins"
+        >
+          <template #icon>
+            <refresh-icon/>
+          </template>
+          {{ t('list.refresh') }}
+        </t-button>
       </div>
       <div class="page-header-right">
         <t-button
@@ -144,6 +155,22 @@ async function refreshProfiles() {
   }
 }
 
+const refreshingList = ref(false)
+
+/** 重新获取当前 profile 的插件列表 */
+async function refreshPlugins() {
+  if (refreshingList.value || !store.currentProfile) return
+  refreshingList.value = true
+  try {
+    await store.loadProfile(store.currentProfile)
+    MessageUtil.success(t('list.pluginsRefreshDone'))
+  } catch {
+    MessageUtil.error(t('list.pluginsRefreshFailed'))
+  } finally {
+    refreshingList.value = false
+  }
+}
+
 // ---- 工具栏 ----
 function openInstall() {
   openInstallPlugin({profile: store.currentProfile})
@@ -230,7 +257,7 @@ async function doRemove(item: BundleItem) {
       min-width: 0;
 
       .profile-select {
-        width: 200px;
+        width: 120px;
 
       }
 
