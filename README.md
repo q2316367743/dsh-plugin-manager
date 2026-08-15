@@ -8,6 +8,14 @@
 - **前端**：Vue 3 + TDesign + Vite + UnoCSS（`frontend/`）
 - **原生能力**：Wails runtime（对话框 / 剪贴板 / 打开外链 / 事件系统）
 
+## 下载
+
+『来自123云盘VIP会员落雨不悔的分享』dsh-plugin-manager
+
+链接：https://1842912324.share.123pan.cn/123pan/JK0UTd-Bvvxd?pwd=8zdc#
+
+提取码：8zdc
+
 ## 开发
 
 前置要求：Go 1.24+、Node/pnpm、`wails3` CLI（`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`）。
