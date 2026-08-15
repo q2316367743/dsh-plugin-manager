@@ -1,5 +1,11 @@
 <template>
-  <t-card :title="title" class="group-card">
+  <t-card class="group-card">
+    <template #title>
+      <div class="group-title">
+        <span>{{ title }}</span>
+        <slot name="title-extra" />
+      </div>
+    </template>
     <template #actions>
       <slot name="actions" />
     </template>
@@ -30,6 +36,12 @@ const emit = defineEmits<{
 </script>
 <style scoped lang="less">
 .group-card {
+  .group-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   .group-list {
     display: flex;
     flex-direction: column;

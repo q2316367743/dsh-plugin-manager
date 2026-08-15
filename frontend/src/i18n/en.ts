@@ -52,6 +52,7 @@ export const en: Record<I18nKey, string> = {
   // list
   'list.official': 'Official plugins',
   'list.thirdParty': 'Third-party plugins',
+  'list.communityPlugins': 'Community plugins',
   'list.empty': 'No plugins in this profile yet. Click "Install plugin" to search and add.',
   'list.searchPlaceholder': 'Search plugins by name or description…',
   'list.noMatch': 'No matching plugins',
@@ -65,6 +66,7 @@ export const en: Record<I18nKey, string> = {
   'toolbar.install': 'Install plugin',
   'toolbar.globalSettings': 'Global Settings',
   'toolbar.pure': 'Pure mode',
+  'toolbar.pureTip': 'When enabled, only @deepseek-ai/ official plugins are kept and all third-party plugins are hidden',
   'toolbar.pureOn': 'Pure mode on: only @deepseek-ai/ official plugins remain',
   'toolbar.pureOff': 'Pure mode off: all third-party plugins restored',
 

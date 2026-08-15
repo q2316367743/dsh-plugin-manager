@@ -88,10 +88,20 @@
           @toggle="onToggle"
           @action="onAction"
         >
+          <template #title-extra>
+            <t-link theme="primary" size="small" @click="openCommunity">
+              <template #prefix-icon>
+                <app-icon />
+              </template>
+              {{ t('list.communityPlugins') }}
+            </t-link>
+          </template>
           <template #actions>
-            <t-switch :value="store.pureMode" :disabled="store.cliBusy" @change="onPureMode">
-              <template #label>{{ t('toolbar.pure') }}</template>
-            </t-switch>
+            <t-tooltip :content="t('toolbar.pureTip')">
+              <t-switch :value="store.pureMode" :disabled="store.cliBusy" @change="onPureMode">
+                <template #label>{{ t('toolbar.pure') }}</template>
+              </t-switch>
+            </t-tooltip>
           </template>
         </PluginGroup>
         <t-empty v-if="!store.detail?.items.length" :description="t('list.empty')" class="empty"/>
@@ -105,7 +115,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {AddIcon, RefreshIcon, SearchIcon, SettingIcon} from 'tdesign-icons-vue-next'
+import {AddIcon, AppIcon, RefreshIcon, SearchIcon, SettingIcon} from 'tdesign-icons-vue-next'
 import ServerCard from './components/ServerCard.vue'
 import PluginGroup from './components/PluginGroup.vue'
 import {useDshStore} from '@/store/dsh'
@@ -192,6 +202,11 @@ async function onPureMode(on: boolean | string | number) {
 async function onToggle(item: BundleItem, enabled: boolean) {
   await store.toggleBundle(item, enabled)
   promptRestart(enabled ? 'enabled' : 'disabled', item.name)
+}
+
+/** 使用默认浏览器打开社区插件仓库 */
+function openCommunity() {
+  void nativeApi.shell.openExternal('https://github.com/topics/dsh-plugin')
 }
 
 function onAction(item: BundleItem, value: string) {

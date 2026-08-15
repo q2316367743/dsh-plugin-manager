@@ -49,6 +49,7 @@ export const zh = {
   // 插件列表
   'list.official': '官方插件',
   'list.thirdParty': '第三方插件',
+  'list.communityPlugins': '社区插件',
   'list.empty': '该平台暂无插件，点击「安装插件」搜索添加',
   'list.searchPlaceholder': '搜索插件名称或描述…',
   'list.noMatch': '没有匹配的插件',
@@ -62,6 +63,7 @@ export const zh = {
   'toolbar.install': '安装插件',
   'toolbar.globalSettings': '全局设置',
   'toolbar.pure': '纯净模式',
+  'toolbar.pureTip': '开启后仅保留 @deepseek-ai/ 官方插件，隐藏所有第三方插件',
   'toolbar.pureOn': '纯净模式已开启：仅保留 @deepseek-ai/ 官方插件',
   'toolbar.pureOff': '已关闭纯净模式，恢复所有第三方插件',
 
