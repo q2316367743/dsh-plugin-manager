@@ -1,6 +1,7 @@
 /**
  * 系统托盘桥接：把 web 服务运行状态回推给托盘菜单（tray:service-status），
- * 并响应托盘操作（tray:toggle-service 启停服务、tray:quit-request 退出前停服务）。
+ * 并响应托盘操作（tray:toggle-service 启停服务、tray:open-browser 打开浏览器、
+ * tray:quit-request 退出前停服务）。
  * 事件协议与 Go 侧 services/tray.go（负载类型）及根目录 tray.go（托盘实现）对应。
  */
 import { watch } from 'vue'
@@ -44,6 +45,11 @@ export function useTray() {
     } else {
       void store.serverStart()
     }
+  })
+
+  // 托盘"打开浏览器"：复用 UI 打开按钮逻辑（按 browserMode 设置走默认/内置浏览器）
+  Events.On('tray:open-browser', () => {
+    store.serverOpen()
   })
 
   // 托盘"退出"：先停服务，确认后再由 Go 侧真正退出

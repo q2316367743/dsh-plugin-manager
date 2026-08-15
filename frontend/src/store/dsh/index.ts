@@ -278,8 +278,21 @@ export const useDshStore = defineStore('dsh', {
         ['plugin', '--profile', this.currentProfile, 'remove', bundle.name],
         onOutput
       )
-      if (code === 0) await this.loadProfile(this.currentProfile)
+      if (code === 0) {
+        await this.removeBundlePatchEntries(bundle)
+        await this.loadProfile(this.currentProfile)
+      }
       return code === 0
+    },
+
+    /** 卸载后清理 cordis.patch.yml 中该插件的行条目（含 config 覆盖与 disabled 状态） */
+    async removeBundlePatchEntries(bundle: BundleItem) {
+      const ids = bundle.rows.map((row) => row.id)
+      if (!ids.includes(bundle.name)) ids.push(bundle.name)
+      let patchText = await dshApi.readProfilePatch(this.currentProfile)
+      let next = patchText
+      for (const id of ids) next = dshApi.removePatchEntry(next, id)
+      if (next !== patchText) await dshApi.writeProfilePatch(this.currentProfile, next)
     },
 
     // ---- web 服务（启停 / 状态实现见 ./server）----

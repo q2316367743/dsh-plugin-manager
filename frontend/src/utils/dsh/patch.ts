@@ -104,11 +104,12 @@ export function setPatchConfigEntry(
   return stringify(doc)
 }
 
-/** 按行 id 删除条目 */
+/** 按行 id 删除条目；目标不存在时返回原文，避免把空文件重写为 `[]` */
 export function removePatchEntry(text: string, id: string): string {
   const doc = parseDocument(text || '')
   const seq = ensureSeq(doc)
   const index = seq.items.findIndex((item) => (item as YAMLMap)?.get?.('id') === id)
-  if (index >= 0) seq.items.splice(index, 1)
+  if (index < 0) return text
+  seq.items.splice(index, 1)
   return stringify(doc)
 }

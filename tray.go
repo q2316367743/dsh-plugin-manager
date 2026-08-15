@@ -53,6 +53,11 @@ func setupTray(app *application.App, win *application.WebviewWindow) {
 	serviceItem := menu.Add("启动服务").OnClick(func(*application.Context) {
 		app.Event.Emit("tray:toggle-service")
 	})
+	// 打开浏览器：复用前端 serverOpen 逻辑（按设置走默认/内置浏览器），服务未运行时置灰
+	openItem := menu.Add("打开浏览器").OnClick(func(*application.Context) {
+		app.Event.Emit("tray:open-browser")
+	})
+	openItem.SetEnabled(false)
 	app.Event.On("tray:service-status", func(event *application.CustomEvent) {
 		status, ok := event.Data.(services.TrayServiceStatus)
 		if !ok {
@@ -64,6 +69,7 @@ func setupTray(app *application.App, win *application.WebviewWindow) {
 			serviceItem.SetLabel("启动服务")
 		}
 		serviceItem.SetEnabled(status.Supported)
+		openItem.SetEnabled(status.Running)
 	})
 	menu.AddSeparator()
 	// 检查更新：手动触发一次完整更新流程（headless，应用启动后每 6 小时也会自动检查）；

@@ -58,8 +58,9 @@ func init() {
 	// 注册进程事件，绑定生成器会为前端生成强类型的事件订阅 API。
 	application.RegisterEvent[services.ProcOutput]("proc:output")
 	application.RegisterEvent[services.ProcExit]("proc:exit")
-	// 注册托盘事件：启停请求（Go→前端）、服务状态回推（前端→Go）、退出握手（Go→前端 / 前端→Go）。
+	// 注册托盘事件：启停请求（Go→前端）、打开浏览器（Go→前端）、服务状态回推（前端→Go）、退出握手（Go→前端 / 前端→Go）。
 	application.RegisterEvent[application.Void]("tray:toggle-service")
+	application.RegisterEvent[application.Void]("tray:open-browser")
 	application.RegisterEvent[services.TrayServiceStatus]("tray:service-status")
 	application.RegisterEvent[application.Void]("tray:quit-request")
 	application.RegisterEvent[application.Void]("tray:quit-ready")
