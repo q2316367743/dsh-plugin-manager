@@ -59,6 +59,10 @@ export const dshApi = {
   resolveDshBin: (configuredPath: string): Promise<string | null> =>
     DshService.ResolveDshBin(configuredPath || ''),
 
+  /** 解析 bun / npm 等全局工具可执行文件路径；未安装返回 null */
+  resolveToolBin: (name: string): Promise<string | null> =>
+    DshService.ResolveToolBin(name),
+
   /** 解析 dsh 路径并探测运行方式（直接执行 / bun 兜底），返回合并结果 */
   async resolveDsh(configuredPath: string): Promise<DshResolveResult> {
     const r = await DshService.ResolveDsh(configuredPath || '')

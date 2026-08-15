@@ -16,9 +16,9 @@ export const en: Record<I18nKey, string> = {
   'nav.profiles': 'Profiles',
 
   // dsh missing banner
-  'banner.title': 'dsh command not found',
+  'banner.title': 'DeepSeek Harness (dsh) not found',
   'banner.desc':
-    'dsh is the command-line entry of DeepSeek Harness. Plugin install, remove and the web server all depend on it. Install it first:',
+    'dsh is the command-line tool of DeepSeek Harness. Plugin install, remove and the web server all depend on it. Install it first:',
   'banner.installBun': 'Install via bun',
   'banner.installNpm': 'Install via npm',
   'banner.or': 'or',
@@ -26,6 +26,10 @@ export const en: Record<I18nKey, string> = {
   'banner.placeholder': 'Path to the dsh executable, e.g. /Users/you/.bun/bin/dsh',
   'banner.chooseFile': 'Browse…',
   'banner.verify': 'Verify & save',
+  'banner.refresh': 'Re-check after install',
+  'banner.install': 'Install',
+  'banner.toolMissing': 'bun / npm not found. Copy the command to your terminal, or point to the dsh executable manually',
+  'banner.officialSite': 'Visit the DeepSeek Harness website',
   'banner.verified': 'dsh v{version} recognized',
   'banner.invalid': 'Invalid path or not an executable dsh: {error}',
   'banner.missing': 'dsh not found; features are limited',
@@ -118,6 +122,16 @@ export const en: Record<I18nKey, string> = {
   'install.failed': 'Install failed (exit code {code})',
   'install.restartAsk':
     'Plugin installed. It takes effect after restarting the dsh web server. Restart now?',
+
+  // install dsh (setup page)
+  'installDsh.title': 'Install dsh',
+  'installDsh.consolePlaceholder': 'Installing — output appears here…',
+  'installDsh.cancel': 'Cancel install',
+  'installDsh.close': 'Close',
+  'installDsh.done': 'Install finished',
+  'installDsh.killed': 'Install cancelled',
+  'installDsh.failed': 'Install failed (exit code {code})',
+  'installDsh.spawnFailed': 'Failed to start install process',
 
   // config modal
   'config.title': 'Plugin config',

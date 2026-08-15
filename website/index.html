@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DSH 插件管理器 · dsh 插件管理桌面端</title>
+  <meta name="description" content="基于 Go + Wails v3 的 dsh（DeepSeek Harness）插件管理器桌面应用：粘贴 spec 一键安装、纯净模式、web 服务一键启停、托盘常驻。" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --bg-alt: #ffffff;
+      --bg-soft: #eef0f4;
+      --text: #1c2024;
+      --text-muted: #5a6472;
+      --border: #e4e7ec;
+      --primary: #4d6bfe;
+      --primary-strong: #3a56d4;
+      --grad: linear-gradient(135deg, #4d6bfe 0%, #7c5cfc 100%);
+      --shadow: 0 8px 30px rgba(31, 42, 68, 0.10);
+      --shadow-soft: 0 4px 16px rgba(31, 42, 68, 0.06);
+      --radius: 14px;
+      --maxw: 1120px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0e1116;
+        --bg-alt: #161b22;
+        --bg-soft: #1c222c;
+        --text: #e8eaed;
+        --text-muted: #9aa4b2;
+        --border: #2a313c;
+        --primary: #6b85ff;
+        --primary-strong: #8b9eff;
+        --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+        --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.30);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    a { color: var(--primary); text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    .container { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- 顶部导航 ---------- */
+    header.nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: var(--maxw); margin: 0 auto; padding: 0 24px;
+      height: 60px; display: flex; align-items: center; gap: 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); }
+    .brand img { width: 26px; height: 26px; border-radius: 7px; }
+    .nav-links { display: flex; gap: 20px; margin-left: auto; font-size: 14px; }
+    .nav-links a { color: var(--text-muted); }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 10px; padding: 0 18px; height: 40px;
+      font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid transparent;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--grad); color: #fff; box-shadow: var(--shadow-soft); }
+    .btn-primary:hover { box-shadow: var(--shadow); }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover { background: var(--bg-soft); }
+    .btn-sm { height: 34px; padding: 0 14px; font-size: 13px; }
+
+    /* ---------- Hero ---------- */
+    .hero { padding: 88px 0 72px; position: relative; overflow: hidden; }
+    .hero::before {
+      content: ""; position: absolute; inset: 0;
+      background:
+        radial-gradient(600px 320px at 18% 8%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%),
+        radial-gradient(520px 300px at 85% 12%, color-mix(in srgb, #7c5cfc 14%, transparent), transparent 70%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      position: relative;
+      display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center;
+    }
+    .hero h1 { font-size: 44px; line-height: 1.25; font-weight: 700; letter-spacing: -0.5px; }
+    .hero h1 .accent { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero .lead { margin-top: 16px; font-size: 17px; color: var(--text-muted); max-width: 30em; }
+    .hero .cta { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero .hint { margin-top: 16px; font-size: 13px; color: var(--text-muted); }
+    .hero-shot {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--bg-alt); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .hero-shot img { width: 100%; }
+    @media (max-width: 880px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+      .hero { padding: 56px 0 48px; }
+      .hero h1 { font-size: 34px; }
+    }
+
+    /* ---------- 通用 section ---------- */
+    section.block { padding: 64px 0; }
+    section.block.alt { background: var(--bg-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .sec-head { text-align: center; max-width: 640px; margin: 0 auto 48px; }
+    .sec-head h2 { font-size: 30px; font-weight: 700; letter-spacing: -0.3px; }
+    .sec-head p { margin-top: 12px; color: var(--text-muted); }
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ---------- 特性 ---------- */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature {
+      background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .feature:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); }
+    .feature .icon {
+      width: 42px; height: 42px; border-radius: 11px; background: var(--grad);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 14px;
+    }
+    .feature h3 { font-size: 16px; font-weight: 600; }
+    .feature p { margin-top: 6px; font-size: 14px; color: var(--text-muted); }
+    @media (max-width: 880px) { .features { grid-template-columns: 1fr; } }
+
+    /* ---------- 截图展示 ---------- */
+    .shots { display: grid; gap: 56px; }
+    .shot { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: center; }
+    .shot.reverse .shot-media { order: 2; }
+    .shot-media { display: flex; gap: 14px; align-items: center; }
+    .shot-media .frame {
+      flex: 1; min-width: 0; background: var(--bg-alt); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-soft); overflow: hidden;
+    }
+    .shot-media .frame img { width: 100%; }
+    .shot-media .frame.slim { flex: 0 0 auto; width: min(150px, 30%); }
+    .shot-text h3 { font-size: 20px; font-weight: 600; }
+    .shot-text p { margin-top: 10px; color: var(--text-muted); font-size: 15px; }
+    .shot-text ul { margin-top: 12px; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--text); }
+    .shot-text li { padding-left: 22px; position: relative; }
+    .shot-text li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 8px; height: 8px; border-radius: 3px; background: var(--grad); }
+    @media (max-width: 880px) {
+      .shot, .shot.reverse { grid-template-columns: 1fr; }
+      .shot.reverse .shot-media { order: 0; }
+    }
+
+    /* ---------- 下载 ---------- */
+    .dl-card {
+      max-width: 640px; margin: 0 auto; text-align: left;
+      background: var(--bg-alt); border: 1px solid var(--border); border-radius: 18px;
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .dl-head { padding: 24px 28px; background: var(--grad); color: #fff; }
+    .dl-head h3 { font-size: 20px; font-weight: 700; }
+    .dl-head p { margin-top: 4px; font-size: 14px; opacity: 0.92; }
+    .dl-body { padding: 26px 28px; display: grid; gap: 18px; }
+    .dl-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .dl-row .label { font-size: 14px; color: var(--text-muted); flex: 0 0 64px; }
+    .dl-link {
+      flex: 1; min-width: 200px; word-break: break-all; font-size: 13px;
+      background: var(--bg-soft); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px;
+    }
+    .code {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--bg-soft); border: 1px solid var(--border); border-radius: 9px; padding: 6px 8px 6px 14px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 15px; letter-spacing: 2px; font-weight: 700;
+    }
+    .dl-actions { margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .dl-foot { padding: 14px 28px 22px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); }
+
+    /* ---------- 技术栈 ---------- */
+    .stack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stack-item {
+      background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; text-align: center;
+    }
+    .stack-item .k { font-size: 15px; font-weight: 600; }
+    .stack-item .v { margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+    @media (max-width: 880px) { .stack { grid-template-columns: repeat(2, 1fr); } }
+
+    footer.foot { padding: 36px 0 44px; text-align: center; font-size: 13px; color: var(--text-muted); }
+    footer.foot a { color: var(--text-muted); }
+    footer.foot a:hover { color: var(--primary); }
+    footer.foot .row { margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <img src="favicon.png" alt="DSH 插件管理器" />
+        <span>DSH 插件管理器</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">功能特性</a>
+        <a href="#screenshots">界面预览</a>
+        <a href="#download">下载</a>
+      </nav>
+      <a class="btn btn-primary btn-sm" href="#download">立即下载</a>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <h1>别再手搓 yml 了<br /><span class="accent">dsh 插件管理桌面端</span></h1>
+          <p class="lead">
+            DSH 插件管理器是一款基于 Go + Wails v3 的原生桌面应用，按 profile 管理
+            dsh（DeepSeek Harness）插件：粘贴 spec 一键安装、启用 / 禁用、更新移除、纯净模式、
+            web 服务一键启停，托盘常驻随时唤回。
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href="#download">⬇ 立即下载</a>
+            <a class="btn btn-ghost" href="https://github.com/q2316367743/dsh-plugin-manager" target="_blank" rel="noopener">GitHub 仓库</a>
+          </div>
+          <p class="hint">支持 macOS / Windows · 当前版本 v1.0.0 · 开源免费</p>
+        </div>
+        <div class="hero-shot">
+          <img src="images/05-list.png" alt="DSH 插件管理器主界面：官方 / 第三方插件列表" />
+        </div>
+      </div>
+    </section>
+
+    <!-- 功能特性 -->
+    <section class="block alt" id="features">
+      <div class="container">
+        <div class="sec-head reveal">
+          <h2>核心功能</h2>
+          <p>能点鼠标解决的事，就别手改 yml 了</p>
+        </div>
+        <div class="features">
+          <div class="feature reveal">
+            <div class="icon">🎯</div>
+            <h3>粘贴 spec 一键安装</h3>
+            <p>npm 包名 / pkg@version / GitHub 源直装，实时彩色日志，随时一键取消。</p>
+          </div>
+          <div class="feature reveal">
+            <div class="icon">📦</div>
+            <h3>启停 · 更新 · 移除</h3>
+            <p>按 profile 管理插件，由官方 dsh CLI 驱动，比手改 package.json 更稳。</p>
+          </div>
+          <div class="feature reveal">
+            <div class="icon">🧹</div>
+            <h3>纯净模式</h3>
+            <p>一键屏蔽第三方插件，官方生态干净稳定。</p>
+          </div>
+          <div class="feature reveal">
+            <div class="icon">🌐</div>
+            <h3>Web 服务一键启停</h3>
+            <p>默认浏览器或内置浏览器窗口直接打开，端口可配置。</p>
+          </div>
+          <div class="feature reveal">
+            <div class="icon">🖥️</div>
+            <h3>托盘常驻</h3>
+            <p>关窗不退出，菜单栏随时启动服务、唤回窗口。</p>
+          </div>
+          <div class="feature reveal">
+            <div class="icon">🔔</div>
+            <h3>应用自动更新</h3>
+            <p>静默检查新版本，Ed25519 签名校验，一键重启完成升级。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 界面预览 -->
+    <section class="block" id="screenshots">
+      <div class="container">
+        <div class="sec-head reveal">
+          <h2>界面预览</h2>
+          <p>从缺失引导到插件管理，覆盖日常使用场景</p>
+        </div>
+
+        <div class="shots">
+          <div class="shot reveal">
+            <div class="shot-media">
+              <div class="frame"><img src="images/01-setup.png" alt="未安装 dsh 时的全屏引导页" /></div>
+              <div class="frame"><img src="images/02-first-open.png" alt="第一次打开应用" /></div>
+            </div>
+            <div class="shot-text">
+              <h3>开箱即用，缺失自动引导</h3>
+              <p>解析不到 dsh 时进入全屏引导页：自动探测 bun / npm 并给出安装命令，可一键安装、手动指定路径，检测通过后直接进入首页。</p>
+              <ul>
+                <li>bun / npm 探测 + 一键安装</li>
+                <li>手动路径 / 文件选择 / 版本校验</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="shot reverse reveal">
+            <div class="shot-media">
+              <div class="frame"><img src="images/03-install.png" alt="安装插件弹窗" /></div>
+              <div class="frame"><img src="images/04-installing.png" alt="正在安装插件，实时日志" /></div>
+            </div>
+            <div class="shot-text">
+              <h3>粘贴 spec 直装</h3>
+              <p>粘贴完整 spec（npm 包名 / pkg@version / github:user/repo#branch）即装，CLI 输出经 ANSI 解析渲染为彩色日志，安装 / 更新均可一键取消。</p>
+              <ul>
+                <li>npm 与 GitHub 源都吃</li>
+                <li>实时彩色日志，可中断</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="shot reveal">
+            <div class="shot-media">
+              <div class="frame"><img src="images/05-list.png" alt="插件列表：官方 / 第三方分组" /></div>
+            </div>
+            <div class="shot-text">
+              <h3>插件列表一目了然</h3>
+              <p>官方 / 第三方分组展示，支持搜索过滤、启用 / 禁用、更新移除；纯净模式开关一键屏蔽第三方。</p>
+              <ul>
+                <li>官方（@deepseek-ai/）插件不可误伤</li>
+                <li>搜索实时过滤，空态友好提示</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="shot reverse reveal">
+            <div class="shot-media">
+              <div class="frame"><img src="images/06-web.png" alt="dsh web 服务运行中" /></div>
+            </div>
+            <div class="shot-text">
+              <h3>Web 服务一键启停</h3>
+              <p>后台启动 dsh web 服务（默认 127.0.0.1:3080），状态实时判定；点击「打开」默认走系统浏览器，也可配置为内置浏览器窗口。</p>
+              <ul>
+                <li>运行状态基于 PID + 端口监听双重判定</li>
+                <li>内置浏览器窗口单例复用、宽高可配</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="shot reveal">
+            <div class="shot-media">
+              <div class="frame"><img src="images/08-browser.png" alt="内置浏览器打开 dsh web" /></div>
+            </div>
+            <div class="shot-text">
+              <h3>内置浏览器直达</h3>
+              <p>设置里选择「内置浏览器」后，点击打开即弹出独立窗口加载 dsh web 页面，无需切换应用。</p>
+            </div>
+          </div>
+
+          <div class="shot reverse reveal">
+            <div class="shot-media">
+              <div class="frame"><img src="images/07-settings.png" alt="设置页" /></div>
+              <div class="frame slim"><img src="images/09-tray.png" alt="系统托盘菜单" /></div>
+            </div>
+            <div class="shot-text">
+              <h3>设置与托盘</h3>
+              <p>dsh 路径、端口、浏览器打开方式、主题、语言集中管理；菜单栏托盘常驻，关窗不退出，随时启停服务或唤回窗口。</p>
+              <ul>
+                <li>亮色 / 暗色 / 跟随系统</li>
+                <li>托盘：显示 / 启停服务 / 退出</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 下载 -->
+    <section class="block alt" id="download">
+      <div class="container">
+        <div class="sec-head reveal">
+          <h2>下载</h2>
+          <p>123 云盘直链分享 · 提取码一键复制</p>
+        </div>
+        <div class="dl-card reveal">
+          <div class="dl-head">
+            <h3>DSH 插件管理器 v1.0.0</h3>
+            <p>macOS / Windows · 安装包与自动更新包</p>
+          </div>
+          <div class="dl-body">
+            <div class="dl-row">
+              <span class="label">云盘链接</span>
+              <span class="dl-link" id="dlUrl">https://1842912324.share.123pan.cn/123pan/JK0UTd-Bvvxd?pwd=8zdc#</span>
+            </div>
+            <div class="dl-row">
+              <span class="label">提取码</span>
+              <span class="code" id="dlCode">8zdc</span>
+              <button class="btn btn-ghost btn-sm" id="copyBtn" type="button">复制</button>
+            </div>
+            <div class="dl-actions">
+              <a class="btn btn-primary" id="goBtn" href="https://1842912324.share.123pan.cn/123pan/JK0UTd-Bvvxd?pwd=8zdc#" target="_blank" rel="noopener">打开云盘链接</a>
+              <a class="btn btn-ghost" href="https://github.com/q2316367743/dsh-plugin-manager" target="_blank" rel="noopener">GitHub 仓库</a>
+            </div>
+          </div>
+          <div class="dl-foot">
+            「来自 123 云盘 VIP 会员落雨不悔的分享」· 也可前往 GitHub 仓库获取源码与发布信息。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 技术栈 -->
+    <section class="block">
+      <div class="container">
+        <div class="sec-head reveal">
+          <h2>技术栈</h2>
+          <p>原生桌面应用，不是套壳</p>
+        </div>
+        <div class="stack reveal">
+          <div class="stack-item"><div class="k">Go + Wails v3</div><div class="v">桌面壳与原生能力</div></div>
+          <div class="stack-item"><div class="k">Vue 3 + TDesign</div><div class="v">界面与交互</div></div>
+          <div class="stack-item"><div class="k">官方 dsh CLI</div><div class="v">插件生态驱动</div></div>
+          <div class="stack-item"><div class="k">Apache-2.0</div><div class="v">开源协议</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div>DSH 插件管理器 · dsh（DeepSeek Harness）插件管理桌面端</div>
+    <div class="row">
+      © 2026 落雨不悔 · Apache License 2.0 ·
+      <a href="https://github.com/q2316367743/dsh-plugin-manager" target="_blank" rel="noopener">GitHub</a> ·
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鄂ICP备2021003611号-1</a>
+    </div>
+  </footer>
+
+  <script>
+    // 提取码复制（file:// 下 clipboard API 可能不可用，提供 execCommand 兜底）
+    (function () {
+      var copyBtn = document.getElementById('copyBtn');
+      if (!copyBtn) return;
+      var code = document.getElementById('dlCode').textContent.trim();
+      var url = document.getElementById('dlUrl').textContent.trim();
+
+      function done() {
+        copyBtn.textContent = '已复制 ✓';
+        setTimeout(function () { copyBtn.textContent = '复制'; }, 1500);
+      }
+      function fallbackCopy() {
+        var ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { /* 忽略 */ }
+        document.body.removeChild(ta);
+      }
+      copyBtn.addEventListener('click', function () {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(code).then(done, fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      });
+    })();
+
+    // 滚动进入视口淡入
+    (function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12 });
+      els.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
+</body>
+</html>

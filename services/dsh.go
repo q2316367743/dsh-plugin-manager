@@ -251,6 +251,20 @@ func (s *DshService) findBun() string {
 	return s.findOnPath("bun")
 }
 
+/** 解析 bun / npm 等全局工具可执行文件：bun 额外兜底 ~/.bun/bin（默认安装目录），其余仅在 PATH 查找。未找到返回 nil。 */
+func (s *DshService) ResolveToolBin(name string) *string {
+	if name == "bun" {
+		if bun := s.findBun(); bun != "" {
+			return &bun
+		}
+		return nil
+	}
+	if fromPath := s.findOnPath(name); fromPath != "" {
+		return &fromPath
+	}
+	return nil
+}
+
 /** 解析 dsh 可执行文件：手动配置 > PATH > ~/.bun/bin（bun 全局安装目录）。 */
 func (s *DshService) ResolveDshBin(configuredPath string) *string {
 	if configuredPath != "" {

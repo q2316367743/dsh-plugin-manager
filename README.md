@@ -2,6 +2,18 @@
 
 基于 **Wails v3**（Go + Vue 3 / TDesign）的 dsh（DeepSeek Harness）插件管理器桌面应用。按 profile 管理 dsh 插件的启用 / 禁用、安装 / 移除、拖拽排序、纯净模式、dsh web 服务启停、插件 config 编辑、profile 视图导入导出、检查更新。
 
+## 界面预览
+
+| 插件列表（官方 / 第三方分组 · 搜索 · 纯净模式） | 安装插件（粘贴 spec · 实时彩色日志 · 可取消） |
+| --- | --- |
+| ![插件列表](website/images/05-list.png) | ![安装插件](website/images/04-installing.png) |
+
+| dsh web 服务一键启停 | 设置（路径 / 端口 / 浏览器 / 主题 / 语言） |
+| --- | --- |
+| ![Web 服务](website/images/06-web.png) | ![设置](website/images/07-settings.png) |
+
+未安装 dsh 时自动进入全屏引导页（bun / npm 一键安装 + 重新检测）；菜单栏托盘常驻，关窗不退出，随时启停服务或唤回窗口。
+
 ## 技术栈
 
 - **后端**：Go + Wails v3（`services/`：DshService / ProcService / FileService / KVService）

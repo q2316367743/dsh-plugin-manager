@@ -14,8 +14,8 @@ export const zh = {
   'nav.profiles': '平台',
 
   // dsh 缺失横幅
-  'banner.title': '未检测到 dsh 命令',
-  'banner.desc': 'dsh 是 DeepSeek Harness 的命令行入口，插件安装、移除与 web 服务启动都依赖它。请先安装：',
+  'banner.title': '未检测到 DeepSeek Harness（dsh）',
+  'banner.desc': 'dsh 是 DeepSeek Harness 的命令行工具，插件安装、移除与 web 服务启动都依赖它。请先安装：',
   'banner.installBun': '通过 bun 安装',
   'banner.installNpm': '通过 npm 安装',
   'banner.or': '或',
@@ -23,6 +23,10 @@ export const zh = {
   'banner.placeholder': 'dsh 可执行文件的路径，如 /Users/you/.bun/bin/dsh',
   'banner.chooseFile': '选择文件',
   'banner.verify': '校验并保存',
+  'banner.refresh': '已安装，重新检测',
+  'banner.install': '安装',
+  'banner.toolMissing': '未检测到 bun / npm，可复制命令到终端手动安装，或手动指定 dsh 路径',
+  'banner.officialSite': '查看 DeepSeek Harness 官网',
   'banner.verified': '已识别 dsh v{version}',
   'banner.invalid': '路径无效或不是可执行的 dsh：{error}',
   'banner.missing': '未找到 dsh，功能已受限',
@@ -110,6 +114,16 @@ export const zh = {
   'install.killed': '已取消安装',
   'install.failed': '安装失败（退出码 {code}）',
   'install.restartAsk': '插件已安装，重启 dsh web 服务后生效，是否立即重启？',
+
+  // 安装 dsh（引导页）
+  'installDsh.title': '安装 dsh',
+  'installDsh.consolePlaceholder': '正在执行安装，控制台输出将显示在这里…',
+  'installDsh.cancel': '取消安装',
+  'installDsh.close': '关闭',
+  'installDsh.done': '安装完成',
+  'installDsh.killed': '已取消安装',
+  'installDsh.failed': '安装失败（退出码 {code}）',
+  'installDsh.spawnFailed': '无法启动安装进程',
 
   // 配置弹窗
   'config.title': '插件配置',

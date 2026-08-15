@@ -10,20 +10,38 @@
       </div>
 
       <div class="setup-cmds">
-        <div class="setup-cmd">
-          <t-tag theme="primary" variant="light">{{ t('banner.installBun') }}</t-tag>
-          <code class="cmd">bun install -g @deepseek-ai/dsh</code>
-          <t-button size="small" variant="text" shape="square" @click="copyCmd('bun install -g @deepseek-ai/dsh')">
-            <copy-icon/>
-          </t-button>
+        <InstallCmd
+          label-key="banner.installBun"
+          cmd="bun install -g @deepseek-ai/dsh"
+          :bin-path="bunPath"
+          @copy="copyCmd"
+          @install="openInstall"
+        />
+        <InstallCmd
+          label-key="banner.installNpm"
+          cmd="npm install -g @deepseek-ai/dsh"
+          :bin-path="npmPath"
+          @copy="copyCmd"
+          @install="openInstall"
+        />
+        <div v-if="!bunPath && !npmPath" class="tool-missing">{{ t('banner.toolMissing') }}</div>
+        <div class="setup-links">
+          <t-link theme="primary" hover="color" @click="openOfficialSite">
+            <template #suffix>
+              <link-icon/>
+            </template>
+            {{ t('banner.officialSite') }}
+          </t-link>
         </div>
-        <div class="setup-cmd">
-          <t-tag theme="primary" variant="light">{{ t('banner.installNpm') }}</t-tag>
-          <code class="cmd">npm install -g @deepseek-ai/dsh</code>
-          <t-button size="small" variant="text" shape="square" @click="copyCmd('npm install -g @deepseek-ai/dsh')">
-            <copy-icon/>
-          </t-button>
-        </div>
+      </div>
+
+      <div class="setup-refresh">
+        <t-button variant="outline" theme="primary" :loading="refreshing" @click="refresh">
+          <template #icon>
+            <refresh-icon/>
+          </template>
+          {{ t('banner.refresh') }}
+        </t-button>
       </div>
 
       <t-divider/>
@@ -56,12 +74,16 @@
   </div>
 </template>
 <script lang="ts" setup>
+import {onMounted} from 'vue'
 import {useRouter} from 'vue-router'
-import {CommandIcon, CopyIcon, FolderIcon} from 'tdesign-icons-vue-next'
+import {CommandIcon, FolderIcon, LinkIcon, RefreshIcon} from 'tdesign-icons-vue-next'
 import {useDshStore} from '@/store/dsh'
 import {useI18n} from '@/i18n'
 import MessageUtil from '@/utils/modal/MessageUtil'
 import {nativeApi} from '@/api/native'
+import {dshApi} from '@/api/dsh'
+import InstallCmd from './components/InstallCmd.vue'
+import {openInstallDsh} from './modals/InstallDsh'
 
 const store = useDshStore()
 const {t} = useI18n()
@@ -69,10 +91,30 @@ const router = useRouter()
 
 const pathInput = ref(store.settings.dshPath || '')
 const verifying = ref(false)
+const refreshing = ref(false)
+/** bun / npm 可执行文件路径，未检测到为空串 */
+const bunPath = ref('')
+const npmPath = ref('')
+
+/** 探测 bun / npm 是否已安装（存在则记录可执行文件路径） */
+async function detectTools() {
+  const [bun, npm] = await Promise.all([dshApi.resolveToolBin('bun'), dshApi.resolveToolBin('npm')])
+  bunPath.value = bun ?? ''
+  npmPath.value = npm ?? ''
+}
+
+onMounted(() => {
+  void detectTools()
+})
 
 async function copyCmd(cmd: string) {
   await nativeApi.clipboard.copyText(cmd)
   MessageUtil.success(t('common.copied'))
+}
+
+/** 使用默认浏览器打开 DeepSeek Harness 官网 */
+function openOfficialSite() {
+  void nativeApi.shell.openExternal('https://www.deepseek.com/harness/')
 }
 
 /** 通过系统文件选择框选择 dsh 可执行文件 */
@@ -90,12 +132,42 @@ async function verify() {
     if (store.dsh.state === 'ok') {
       MessageUtil.success(t('banner.verified', {version: store.dsh.version ?? ''}))
       // 校验通过，进入首页
-      router.replace('/profile')
+      await router.replace('/profile')
     } else {
       MessageUtil.error(t('banner.invalid', {error: store.dsh.error ?? ''}))
     }
   } finally {
     verifying.value = false
+  }
+}
+
+/** 打开安装弹窗：执行 `bun/npm install -g @deepseek-ai/dsh`，安装结束后自动重新检测并进入首页 */
+function openInstall(bin: string) {
+  const args = ['install', '-g', '@deepseek-ai/dsh']
+  // Windows 下 npm 为 .cmd 脚本，需经 cmd /c 执行
+  const command = /\.(cmd|bat)$/i.test(bin) ? 'cmd' : bin
+  const cmdArgs = command === 'cmd' ? ['/c', bin, ...args] : args
+  openInstallDsh({
+    command,
+    args: cmdArgs,
+    onSuccess: () => router.replace('/profile')
+  })
+}
+
+/** 重新检测 dsh 命令是否已可用（如刚通过 bun / npm 安装完成） */
+async function refresh() {
+  refreshing.value = true
+  try {
+    await Promise.all([store.resolveDsh(), detectTools()])
+    if (store.dsh.state === 'ok') {
+      MessageUtil.success(t('banner.verified', {version: store.dsh.version ?? ''}))
+      // 检测通过，进入首页
+      await router.replace('/profile')
+    } else {
+      MessageUtil.error(t('banner.invalid', {error: store.dsh.error ?? ''}))
+    }
+  } finally {
+    refreshing.value = false
   }
 }
 
@@ -165,24 +237,21 @@ function goSettings() {
       flex-direction: column;
       gap: 8px;
 
-      .setup-cmd {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .cmd {
-          flex: 1;
-          padding: 6px 10px;
-          border-radius: var(--td-radius-default);
-          background-color: var(--td-bg-color-component);
-          border: 1px solid var(--td-border-level-1-color);
-          font-size: 12px;
-          font-family: monospace;
-          color: var(--td-text-color-primary);
-          overflow-x: auto;
-          white-space: nowrap;
-        }
+      .tool-missing {
+        font-size: 12px;
+        color: var(--td-text-color-placeholder);
       }
+
+      .setup-links {
+        display: flex;
+        justify-content: center;
+      }
+    }
+
+    .setup-refresh {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
     }
 
     .setup-manual {

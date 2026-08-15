@@ -70,6 +70,13 @@ export function ResolveDshBin(configuredPath: string): $CancellablePromise<strin
     return $Call.ByID(2389257323, configuredPath);
 }
 
+/**
+ * * 解析 bun / npm 等全局工具可执行文件：bun 额外兜底 ~/.bun/bin（默认安装目录），其余仅在 PATH 查找。未找到返回 nil。
+ */
+export function ResolveToolBin(name: string): $CancellablePromise<string | null> {
+    return $Call.ByID(3902555958, name);
+}
+
 export function WriteProfileManifest(profile: string, manifest: { [_ in string]?: any } | null): $CancellablePromise<void> {
     return $Call.ByID(3150016832, profile, manifest);
 }
